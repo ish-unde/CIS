@@ -56,28 +56,22 @@ class Frame:
 def find_rigid_transform(points_A, points_B):
     """
     Find the rigid transformation that best aligns points_A to points_B
-    using Kabsch algorithm (calculates optimal rotation and tranlsation by centering points, moving to origin 
-    and using SVD to find rotation and tranlsation components)
-    
-    Args:
-        points_A: List of Point3D in source coordinate system
-        points_B: List of Point3D in target coordinate system
-    
-    Returns:
-        Frame: Transformation that maps points_A to points_B
+    using slides 4 from CIS Class and Direct Technique to solve for R from 
+    K.Arun et al. IEEE PAMI, Vol 9 no 5, September 1987.
+
     """
-    # Convert to numpy arrays
-    A = np.array([p.to_array() for p in points_A]).T  # 3xN
-    B = np.array([p.to_array() for p in points_B]).T  # 3xN
+    # Convert to numpy 
+    A = np.array([p.to_array() for p in points_A]).T  
+    B = np.array([p.to_array() for p in points_B]).T  
     
-    # Center the points
+    # Center the points - Step 1 
     centroid_A = np.mean(A, axis=1, keepdims=True)
     centroid_B = np.mean(B, axis=1, keepdims=True)
     
     A_centered = A - centroid_A
     B_centered = B - centroid_B
     
-    # Compute covariance matrix
+    # Compute covariance matrix - Step 2 
     H = A_centered @ B_centered.T
     
     # SVD
@@ -90,18 +84,21 @@ def find_rigid_transform(points_A, points_B):
     if np.linalg.det(R) < 0:
         Vt[-1, :] *= -1
         R = Vt.T @ U.T
-    
-    # Calculate translation
+
+    #Verifying that Det(R) = 1 
+    assert np.isclose(np.linalg.det(R), 1.0), "Det(R) is not 1"
+
+    # Calculate translation - Step 3 
     t = centroid_B - R @ centroid_A
     
-    # Create Frame object
+    # Create Frame object - Step 4 
     rotation = Rotation(R)
     translation = Point3D(t[0, 0], t[1, 0], t[2, 0])
     
     return Frame(rotation, translation)
 
+#Calculate centroid of a set of points
 def calculate_centroid(points):
-    """Calculate centroid of a set of points"""
     if not points:
         return Point3D(0, 0, 0)
     
@@ -112,6 +109,6 @@ def calculate_centroid(points):
     
     return Point3D(sum_x/n, sum_y/n, sum_z/n)
 
+#Apply frame transformation to a list of points
 def transform_points(frame, points):
-    """Apply frame transformation to a list of points"""
     return [frame.transform_point(p) for p in points]
