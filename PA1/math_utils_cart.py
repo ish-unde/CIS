@@ -1,4 +1,6 @@
 import numpy as np
+from scipy import linalg
+
 
 class Point3D:
     def __init__(self, x, y, z):
@@ -112,3 +114,56 @@ def calculate_centroid(points):
 #Apply frame transformation to a list of points
 def transform_points(frame, points):
     return [frame.transform_point(p) for p in points]
+
+#pivot calibration method   
+class PivotCalibration:
+
+    def __init__(self):
+        self.tip_position = None
+        self.pivot_point = None
+        self.residual_error = None
+
+    def calibrate(self, poses):
+        """
+        Perform pivot calibration using parameter estimation 
+
+        Method taken from class slides "Calibration"
+            
+        Returns:
+        tip_position: estimated tip position in tool coordinates (3,)
+        pivot_point: estimated pivot point in world coordinates (3,)
+        """
+        if len(poses) < 2:
+            raise ValueError("Need at least 2 poses for pivot calibration")
+    
+        n_poses = len(poses)
+        
+        # Settuping the matricies for the poses based on calibrations 
+        A = np.zeros((3 * n_poses, 6))
+        b = np.zeros(3 * n_poses)
+        
+        for i, (R, p) in enumerate(poses):
+            start_idx = 3 * i
+            end_idx = 3 * i + 3
+            
+            # Fill A matrix
+            A[start_idx:end_idx, 0:3] = R  # R_j for p_t
+            A[start_idx:end_idx, 3:6] = -np.eye(3)  # -I for p_pivot
+            
+            # Fill b vector
+            b[start_idx:end_idx] = -p
+        
+        # Solve using least squares
+        x, residuals, rank, s = linalg.lstsq(A, b)
+
+        # Check solution quality
+        if rank < 6:
+            print(f"System is underdetermined, rank is < 6: {rank}")
+        
+        # update points, and error, keep going if error is not small enough 
+        self.tip_position = x[0:3]
+        self.pivot_point = x[3:6]
+        self.residual_error = np.sqrt(np.sum(residuals) / n_poses) if len(residuals) > 0 else 0
+        
+        return self.tip_position, self.pivot_point
+
