@@ -159,8 +159,12 @@ class PivotCalibration:
         # Check solution quality
         if rank < 6:
             print(f"System is underdetermined, rank is < 6: {rank}")
-        
-        # update points, and error, keep going if error is not small enough 
+
+        #Check if its a valid rotation by checking if Det(R) = 1
+        if np.isclose(np.linalg.det(R), 1):
+            print("Valid rotation matrix with Det(R) = 1")
+
+        # update points and error 
         self.tip_position = x[0:3]
         self.pivot_point = x[3:6]
         self.residual_error = np.sqrt(np.sum(residuals) / n_poses) if len(residuals) > 0 else 0
