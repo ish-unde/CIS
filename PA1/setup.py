@@ -4,7 +4,7 @@ import setuptools
 setuptools.setup(
     name="CISPA1",
     version="0.0.1",
-    author="Ishita and Angela",
+    author="Ishita Unde and Angela Appiah",
     author_email="iunde1@jhu.edu, aappiah7@jh.edu",
     description="cispa1",
     long_description="cispa1",

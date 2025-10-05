@@ -34,8 +34,8 @@ def test_basic_math_operations():
     # Should return to original: (1, 2, 3)
     
     print("math tests completed\n")
-    
-def test_kabsch_algorithm():        
+
+def test_rigid_transform_algorithm():        
     # Test 1: Pure translation
     print("Test 1: Pure Translation")
     points_A = [Point3D(1, 1, 1), Point3D(2, 1, 1), Point3D(1, 2, 1)]
@@ -69,4 +69,4 @@ def test_kabsch_algorithm():
     print(f"Expected point B: ({expected.x}, {expected.y}, {expected.z})")
     print(f"Error: {np.linalg.norm(transformed.to_array() - expected.to_array()):.6f}")
     
-    print("Kabsch algorithm tests done\n")
+    print("3D set point registration algorithm tests done\n")
