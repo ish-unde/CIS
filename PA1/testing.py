@@ -1,6 +1,7 @@
 import numpy as np
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
 from file_io import read_points_from_file
+from math_utils_cart import PivotCalibration,calibrate
 
 def test_basic_math_operations():    
     # Test 1: Point3D operations
@@ -70,3 +71,63 @@ def test_rigid_transform_algorithm():
     print(f"Error: {np.linalg.norm(transformed.to_array() - expected.to_array()):.6f}")
     
     print("3D set point registration algorithm tests done\n")
+
+def test_calibrate_function():
+    #Test #1: Testing known pivot point and tip position
+    cal = PivotCalibration()
+    known_tip = np.array([0.1, 0.2, 0.3])
+    known_pivot = np.array([1.0, 2.0, 3.0])
+
+    poses = []
+    for i in range(10): 
+        axis = np.random.randn(3)
+        axis = axis / np.linalg.norm(axis)
+        angle = i * (np.pi / 10) 
+
+        K = np.array([
+            [0, -axis[2], axis[1]],
+            [axis[2], 0, -axis[0]],
+            [-axis[1], axis[0], 0]
+        ]) 
+
+        
+        R = np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * (K @ K)
+        p = known_pivot - R @ known_tip
+        poses.append((R, p))
+    
+    tip_pos, pivot_pt = cal.calibrate(poses)
+    assert np.allclose(tip_pos, known_tip, atol=1e-3)
+    assert np.allclose(pivot_pt, known_pivot, atol=1e-3)
+    assert cal.residual_error < 1e-3
+    print("known pivot point and tip position test passed")
+
+    #Test #2: Testing edge case
+    cal = PivotCalibration()
+    poses = []
+    R_almost_1 = np.array([
+        [1.0000001, 0, 0],
+        [0, 0.9999999, 0],
+        [0, 0, 1.0]
+    ])
+    poses.append((np.eye(3), np.array([0, 0, 0])))
+    poses.append((R_almost_1, np.array([1, 1, 1])))
+    
+    tip_pos, pivot_pt = cal.calibrate(poses)
+    assert tip_pos is not None
+    print("Edge cases test passed")
+
+    #Test #3: Testing to make sure output shape is (3,)
+    cal = PivotCalibration()
+    poses = []
+    for i in range(4):
+        R = np.eye(3)
+        p = np.random.randn(3)
+        poses.append((R, p))
+    
+    tip_pos, pivot_pt = cal.calibrate(poses)
+    assert tip_pos.shape == (3,)
+    assert pivot_pt.shape == (3,)
+    assert isinstance(cal.residual_error, float)
+    print("Output is shape (3, ) test, ie passed")
+
+    
