@@ -4,7 +4,7 @@ from pathlib import Path
 import math_utils_cart
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
 from math_utils_cart import find_fd, find_fa, compute_C_expected, read_calbody, read_calreadings
-from math_utils_cart import read_empivot, read_optpivot, em_tracking, parse_files, opt_pivot_calibration
+from math_utils_cart import read_empivot, read_optpivot, em_tracking, parse_files, opt_pivot_calibration, write_output
 from file_io import read_points_from_file
 from testing import test_basic_math_operations, test_kabsch_algorithm
 import click
@@ -37,6 +37,15 @@ def main(data_dir, output_dir, name_1, name_2, name_3, name_4, output_file, outp
     if not output_dir.exists():
         output_dir.mkdir()
 
+
+    # getting output file details and elements
+    c_expected = None
+    n_c = None
+    n_frames = None
+    em_pivot_post = None
+    opt_pivot_post = None
+
+
     cal_body = math_utils_cart.read_calbody(
         f"{cal_path}.txt"
     )
@@ -53,28 +62,27 @@ def main(data_dir, output_dir, name_1, name_2, name_3, name_4, output_file, outp
     
     
     if name_1 and name_2 and output_file:
-        # run 4. a, b, c
+        # question 4. a, b, and c
 
         try:
             d_points, a_points, c_points = cal_body
-            frames = cal_read
-
-            fd = find_fd(frames, d_points)
-
-            all_fa = find_fa(frames, a_points)
-
+            fd = find_fd(cal_read, d_points)
+            all_fa = find_fa(cal_read, a_points)
             all_c_expected = compute_C_expected(fd, all_fa, c_points)
 
-            #write_output(str(output_dir / output_file), len(c_points), len(frames), all_c_expected)
-
+            n_c = len(c_points)
+            n_frames = len(cal_read)
         except BaseException as err:
             print(f"Unexpected {err=}, {type(err)=}")
             raise
+
     elif name_3 and output_file1 and em_path.exists():
         # question 5.
         try:
             em_frames = read_empivot(str(em_path))
             t_g, p_dimple = em_tracking(em_frames)
+
+            em_pivot_post = p_dimple
 
         except BaseException as err:
             print(f"Unexpected {err=}, {type(err)=}")
@@ -82,16 +90,24 @@ def main(data_dir, output_dir, name_1, name_2, name_3, name_4, output_file, outp
     elif name_4 and output_file2 and opt_path.exists():
         # question 6.
         try:
-            opt_frames = read_optpivot(str(opt_path))
             d_points = cal_body[0]
-            t_h, p_dimple = opt_pivot_calibration(frames, d_points)
+            t_h, p_dimple = opt_pivot_calibration(optpivot, d_points)
+
+            opt_pivot_post = p_dimple
 
 
         except BaseException as err:
             print(f"Unexpected {err=}, {type(err)=}")
             raise
 
-
+    if output_file and all_c_expected is not None:
+        # question 4.d
+        try:
+            output_path = output_dir / f"{output_file}.txt"
+            write_output(output_path, n_c, n_frames, all_c_expected, em_pivot_post, opt_pivot_post)
+        except BaseException as err:
+            print(f"Unexpected {err=}, {type(err)=}")
+            raise   
     
 
 if __name__ == "__main__":

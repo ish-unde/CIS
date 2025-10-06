@@ -488,3 +488,22 @@ def opt_pivot_calibration(frames, d_points):
     p_dimple = Point3D(p_dimple_array[0], p_dimple_array[1], p_dimple_array[2])
 
     return t_h, p_dimple
+
+
+def write_ouput(output_file, N_c, N_frames, all_C_expected, em_post_pivot, opt_post_pivot):
+    with open(output_file, 'w') as file:
+        # line 1: N_c, N_frames, NAME-OUTPUT.TXT
+        file.write(f"{N_c}, {N_frames}, {output_file}\n")
+
+        # line 2 : estimated post position with EM probe pivot calibration
+        file.write(f"{em_post_pivot.x:12.6f}, {em_post_pivot.y:12.6fy}, {em_post_pivot.z:12.6f}\n")
+
+        # line 3 : estimated post position with optical probe pivot calibration
+        file.write(f"{opt_post_pivot.x:12.6f}, {opt_post_pivot.y:12.6f}, {opt_post_pivot.z:12.6f}\n")
+
+        # all lines onward
+        # for each frame, print the expected C from 1 to N
+        for expected in all_C_expected:
+            for c in expected:
+                file.write(f"{c.x:12.6f}, {c.y:12.6f}, {c.z:12.6f}\n")
+                
