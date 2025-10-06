@@ -171,3 +171,204 @@ class PivotCalibration:
         
         return self.tip_position, self.pivot_point
 
+
+
+def find_fd(frames, d_points):
+    """ 
+    computing the transformation FD between optical tracker and EM tracker coordinate
+    """
+
+    all_optical_D = []
+    all_d_points = []
+
+    for frame in frames:
+        all_optical_D.extend(frame.D)
+        all_d_points.extend(d_points)
+
+
+    F_d = find_rigid_transform(all_d_points, all_optical_D)
+
+    return F_d
+
+def find_fa(frames, a_points):
+    """
+    computing the transformation FA between optical tracker and EM tracker coordinate
+    """
+    all_F_a = []
+
+    for i, frame in enumerate(frames):
+        F_a = find_rigid_transform(a_points, frame.A)
+        all_F_a.append(F_a)
+
+    # not sure if we have to computer an eror metric here
+
+    return all_F_a
+
+def compute_expected_C(frames, fd, all_fa, c_points):
+    """
+    computing the expected C position: C_expercted = FD^-1 * FA * c_j
+    """
+
+    all_C_expected = []
+    fd_inv = fd.inverse()
+
+    for i, (frame, f_a) in enumerate(zip(frames, all_fa)):
+        f_composite = fd_inv.compose(f_a)
+
+        c_set = []
+
+        for c_j in c_points:
+            c_expected = f_composite.transform_point(c_j)
+            c_set.append(c_expected)
+
+        all_C_expected.append(c_set)
+
+
+        # need to calculate erros associated with this transformation
+        errors = []
+
+        for expected, actual in zip(all_C_expected[i], frame.C):
+            error = np.linalg.norm(expected.x - actual.x, expected.y - actual.y, expected.z - actual.z)
+            errors.append(error)
+
+        mean_error = np.mean(errors)
+
+    return all_C_expected
+
+
+# helper to read files 
+def read_calreadings(filename):
+    frames = []
+
+
+    with open(filename, 'r') as file:
+
+        header = file.readline().strip()
+        header_parts = [part.strip() for part in header.split(',')]
+
+        num_d_points = int(header_parts[0])
+        num_a_points = int(header_parts[1])
+        num_c_points = int(header_parts[3])
+        num_frames = int(header_parts[2])
+        
+
+
+        for _ in range(num_frames):
+            D_j = []
+            A_j = []
+            C_j = []
+            for _ in range(num_d_points):
+                line = file.readline().strip()
+                x, y, z = map(float, line.split(','))
+                D_j.append(Point3D(x, y, z))
+            for _ in range(num_a_points):
+                line = file.readline().strip()
+                x, y, z = map(float, line.split(','))
+                A_j.append(Point3D(x, y, z))
+            for _ in range(num_c_points):
+                line = file.readline().strip()
+                x, y, z = map(float, line.split(','))
+                C_j.append(Point3D(x, y, z))
+            frames.append(Frame(D_j, A_j, C_j))
+    return frames 
+
+def read_calbody(filename):
+
+    d = []
+    a = []
+    c = []
+
+    with open(filename, 'r') as file:
+        header = file.readline().strip()
+        header_parts = [part.strip() for part in header.split(',')]
+        num_d_points = int(header_parts[0])
+        num_a_points = int(header_parts[1])
+        num_c_points = int(header_parts[2])
+        for _ in range(num_d_points):
+            line = file.readline().strip()
+            x, y, z = map(float, line.split(','))
+            d.append(Point3D(x, y, z))
+        for _ in range(num_a_points):
+            line = file.readline().strip()
+            x, y, z = map(float, line.split(','))
+            a.append(Point3D(x, y, z))
+        for _ in range(num_c_points):
+            line = file.readline().strip()
+            x, y, z = map(float, line.split(','))
+            c.append(Point3D(x, y, z))
+
+    return d, a, c        
+
+
+def parse_files(output_file, cal_read, cal_body):
+    """
+    function to parse files and compute the necessary transformations
+    
+    arguments:
+    output_file: str - base name for output files
+    cal_read: list of Frame - calibration readings (output of running read_calreadings))
+    cal_body: tuple of lists - (d_points, a_points, c_points) (output of running read_calbody)
+    """
+    frames = cal_read
+    d_points, a_points, c_points = cal_body
+
+    F_d = find_fd(frames, d_points)
+    F_a = find_fa(frames, a_points)
+
+    C_expected = compute_expected_C(frames, F_d, F_a, c_points)
+
+
+def em_tracking(filename): 
+    #extract Gj from empivot 5a
+    g_frames = read_empivot(filename) 
+    g_frames_first = g_frames[0]
+    #get frame[0] to calculate midpoint 5a
+    g_midpointx, g_midpointy, g_midpointz = calculate_centroid(g_frames_first.points)  
+    #then calculate gj!  5a
+    g_j_points = []
+    for point in g_frames_first.points:
+        g_j = []
+        g_j = (point.x - g_midpointx, point.y - g_midpointy, point.z - g_midpointz)
+        g_j_points.append(g_j)
+
+    #iterate through all frames to get FG[k] 5b
+    F_G_frames = []
+    for frame in g_frames: 
+        F_Gk = find_rigid_transform(frame.points, g_j.points)
+        F_G_frames.append(F_Gk)
+    
+    #5c, finding P_dimple using pivot calibration
+    poses = [] 
+
+    for frame in F_G_frames: 
+        R = frame[:3, :3]
+        p = frame[:3, 3]
+        poses.append((R, p))
+
+    t_g, P_dimple = calibrate(poses)
+
+    return t_g, P_dimple
+        
+
+
+def read_empivot(filename):
+    frames = []
+
+
+    with open(filename, 'r') as file:
+
+        header = file.readline().strip()
+        header_parts = [part.strip() for part in header.split(',')]
+
+        num_g_points = int(header_parts[0])
+        num_frames = int(header_parts[2])
+        
+
+        for _ in range(num_frames):
+            g_j = []
+            for _ in range(num_g_points):
+                line = file.readline().strip()
+                x, y, z = map(float, line.split(','))
+                g_j.append(Point3D(x, y, z))
+            frames.append(Frame(g_j))
+    return frames 

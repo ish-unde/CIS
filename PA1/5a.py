@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
 def em_tracking(filename): 
     #extract Gj from empivot 5a
-    g_frames = read_file_empivot(filename) 
+    g_frames = read_empivot(filename) 
     g_frames_first = g_frames[0]
     #get frame[0] to calculate midpoint 5a
     g_midpointx, g_midpointy, g_midpointz = calculate_centroid(g_frames_first.points)  
@@ -43,7 +43,7 @@ def em_tracking(filename):
         
 
 
-def read_file_empivot(filename):
+def read_empivot(filename):
     frames = []
 
 
