@@ -4,7 +4,7 @@ from pathlib import Path
 import math_utils_cart
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
 from math_utils_cart import find_fd, find_fa, compute_C_expected, read_calbody, read_calreadings
-from math_utils_cart import read_empivot, read_optpivot, em_tracking, parse_files
+from math_utils_cart import read_empivot, read_optpivot, em_tracking, parse_files, opt_pivot_calibration
 from file_io import read_points_from_file
 from testing import test_basic_math_operations, test_kabsch_algorithm
 import click
@@ -23,17 +23,15 @@ import click
 
 
 
-def main(data_dir, output_dir, name_1, name_2, name_3, name_4, output_file, output_file1, output_file2):
-    #log.info(f"data_dir, output_dir")
-    
+def main(data_dir, output_dir, name_1, name_2, name_3, name_4, output_file, output_file1, output_file2):    
 
     data_dir = Path(data_dir).expanduser()
     output_dir = Path(output_dir).expanduser()
 
-    cal_path = data_dir / f"{name_1}.txt"
-    calreadings = data_dir / f"{name_2}.txt"
-    em_path = data_dir / f"{name_3}.txt"
-    opt_path = data_dir / f"{name_4}.txt"
+    cal_path = data_dir / f"{name_1}"
+    calreadings = data_dir / f"{name_2}"
+    em_path = data_dir / f"{name_3}"
+    opt_path = data_dir / f"{name_4}"
 
     # making output file incase not specified
     if not output_dir.exists():
@@ -47,9 +45,7 @@ def main(data_dir, output_dir, name_1, name_2, name_3, name_4, output_file, outp
         f"{calreadings}.txt"
     )
 
-    empivot = math_utils_cart.read_empivot(
-        f"{em_path}.txt"
-    )
+    # empivot = math_utils_cart.read_empivot(    f"{em_path}.txt")
 
     optpivot = math_utils_cart.read_optpivot(
         f"{opt_path}.txt"
@@ -60,8 +56,8 @@ def main(data_dir, output_dir, name_1, name_2, name_3, name_4, output_file, outp
         # run 4. a, b, c
 
         try:
-            d_points, a_points, c_points = read_calbody(str(cal_path))
-            frames = read_calreadings(str(cal_read))
+            d_points, a_points, c_points = cal_body
+            frames = cal_read
 
             fd = find_fd(frames, d_points)
 
@@ -75,38 +71,28 @@ def main(data_dir, output_dir, name_1, name_2, name_3, name_4, output_file, outp
             print(f"Unexpected {err=}, {type(err)=}")
             raise
     elif name_3 and output_file1 and em_path.exists():
-        # run 5.
+        # question 5.
         try:
-
-            t_g, p_dimple = em_tracking(empivot)
+            em_frames = read_empivot(str(em_path))
+            t_g, p_dimple = em_tracking(em_frames)
 
         except BaseException as err:
             print(f"Unexpected {err=}, {type(err)=}")
             raise
     elif name_4 and output_file2 and opt_path.exists():
-        # run 6.
-
+        # question 6.
         try:
-            opt_data = read_optpivot(str(opt_path))
+            opt_frames = read_optpivot(str(opt_path))
+            d_points = cal_body[0]
+            t_h, p_dimple = opt_pivot_calibration(frames, d_points)
+
+
         except BaseException as err:
             print(f"Unexpected {err=}, {type(err)=}")
             raise
 
 
-
     
-    #Question 6
-    #To run:
-    #python pa1.py --name pa1-debug-a-calbody --name_4 pa1-debug-a-optpivot --output_file2 A_Optpivot 
-    elif opt_path and output_file2:
-        try:
-            math_utils_cart.opt_pivot(optpivot, cal_body, output_file2)
-        except BaseException as err:
-            log.error(f"Unexpected {err=}, {type(err)=}")
-            raise
-    else:
-        print("Input correct terminal arguments and try again!")
-
 
 if __name__ == "__main__":
     main()

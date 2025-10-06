@@ -172,6 +172,15 @@ class PivotCalibration:
         return self.tip_position, self.pivot_point
 
 
+class CalibrationFrame:
+    def __init__(self, D, A, C):
+        self.D = D  # List of Point3D
+        self.A = A  # List of Point3D
+        self.C = C  # List of Point3D
+
+
+
+# number 4
 
 def find_fd(frames, d_points):
     """ 
@@ -240,7 +249,6 @@ def compute_expected_C(frames, fd, all_fa, c_points):
 def read_calreadings(filename):
     frames = []
 
-
     with open(filename, 'r') as file:
 
         header = file.readline().strip()
@@ -248,8 +256,8 @@ def read_calreadings(filename):
 
         num_d_points = int(header_parts[0])
         num_a_points = int(header_parts[1])
-        num_c_points = int(header_parts[3])
-        num_frames = int(header_parts[2])
+        num_c_points = int(header_parts[2])
+        num_frames = int(header_parts[3])
         
 
 
@@ -269,7 +277,7 @@ def read_calreadings(filename):
                 line = file.readline().strip()
                 x, y, z = map(float, line.split(','))
                 C_j.append(Point3D(x, y, z))
-            frames.append(Frame(D_j, A_j, C_j))
+            frames.append(CalibrationFrame(D_j, A_j, C_j))
     return frames 
 
 def read_calbody(filename):
@@ -318,15 +326,26 @@ def parse_files(output_file, cal_read, cal_body):
     C_expected = compute_expected_C(frames, F_d, F_a, c_points)
 
 
-def em_tracking(filename): 
-    #extract Gj from empivot 5a
-    g_frames = read_empivot(filename) 
+
+
+# question 5
+
+class EmPivotFrame:
+    def __init__(self, g_points):
+        self.g_points = g_points  
+
+
+
+
+def em_tracking(frames): 
+    #extract Gj from empivot 5a (angela : passing the frames in @1:30am)
+    g_frames = frames
     g_frames_first = g_frames[0]
     #get frame[0] to calculate midpoint 5a
-    g_midpointx, g_midpointy, g_midpointz = calculate_centroid(g_frames_first.points)  
+    g_midpointx, g_midpointy, g_midpointz = calculate_centroid(g_frames_first.g_points)  
     #then calculate gj!  5a
     g_j_points = []
-    for point in g_frames_first.points:
+    for point in g_frames_first.g_points:
         g_j = []
         g_j = (point.x - g_midpointx, point.y - g_midpointy, point.z - g_midpointz)
         g_j_points.append(g_j)
@@ -334,18 +353,25 @@ def em_tracking(filename):
     #iterate through all frames to get FG[k] 5b
     F_G_frames = []
     for frame in g_frames: 
-        F_Gk = find_rigid_transform(frame.points, g_j.points)
+        F_Gk = find_rigid_transform(frame.g_points, g_j.points)
         F_G_frames.append(F_Gk)
     
     #5c, finding P_dimple using pivot calibration
     poses = [] 
 
     for frame in F_G_frames: 
-        R = frame[:3, :3]
-        p = frame[:3, 3]
+        R = frame.rotation.matrix
+        p = frame.translation.to_array()
         poses.append((R, p))
 
-    t_g, P_dimple = calibrate(poses)
+
+    pivot = PivotCalibration()
+    t_g_array, P_dimple_array = pivot.calibrate(poses)
+
+    t_g = Point3D(t_g_array[0], t_g_array[1], t_g_array[2])
+    P_dimple = Point3D(P_dimple_array[0], P_dimple_array[1], P_dimple_array[2])
+
+    # t_g, P_dimple = calibrate(poses)
 
     return t_g, P_dimple
         
@@ -370,5 +396,95 @@ def read_empivot(filename):
                 line = file.readline().strip()
                 x, y, z = map(float, line.split(','))
                 g_j.append(Point3D(x, y, z))
-            frames.append(Frame(g_j))
+            frames.append(EmPivotFrame(g_j))
     return frames 
+
+
+# question 6
+
+class OptPivotFrame: 
+    def __init__(self, d_points, h_points):
+        self.d_points = d_points  
+        self.h_points = h_points 
+
+
+def read_optpivot(filename):
+    frames = []
+
+    with open(filename, 'r') as file:
+        header = file.readline().strip()
+        header_parts = [part.strip() for part in header.split(',')]
+        num_d_points = int(header_parts[0])
+        num_h_points = int(header_parts[1])
+        num_frames = int(header_parts[2])
+
+
+
+        for _ in range(num_frames):
+            h_points = []
+            d_points = []
+
+
+            # reading d points
+            for _ in range(num_d_points):
+
+                line = file.readline().strip()
+                x, y, z = map(float, line.split(','))
+                d_points.append(Point3D(x, y, z))
+
+            # reading h points
+
+            for _ in range(num_h_points):
+                line = file.readline().strip()
+                x, y, z = map(float, line.split(','))
+                h_points.append(Point3D(x, y, z))
+
+            frames.append(OptPivotFrame(d_points, h_points))
+
+    return frames  
+
+def opt_pivot_calibration(frames, d_points):
+    
+    opt_frames = frames
+    first_frame = opt_frames[0]
+    h_points_first = first_frame.h_points
+    h_midpointx, h_midpointy, h_midpointz = calculate_centroid(h_points_first)  
+    
+    h_j_points = []
+
+    for point in first_frame.h_points:
+        h_j = Point3D(point.x - h_midpointx, point.y - h_midpointy, point.z - h_midpointz)
+        h_j_points.append(h_j)
+
+    
+    poses = []
+
+    for frame in opt_frames:
+        D = frame.d_points
+        H = frame.h_points
+
+        fd = find_rigid_transform(d_points, D)
+
+        # checking error
+
+        fd_inv = fd.inverse()
+
+        h_em = [fd_inv.transform_point(h) for h in H]
+
+        fh = find_rigid_transform(h_j_points, h_em)
+
+        # verify transformation through error
+
+        rotation = fh.rotation.matrix
+        translation = fh.translation.to_array() 
+
+        poses.append((rotation, translation))
+
+    pivot = PivotCalibration()
+    t_h_array, p_dimple_array = pivot.calibrate(poses)
+
+    t_h = Point3D(t_h_array[0], t_h_array[1], t_h_array[2])
+
+    p_dimple = Point3D(p_dimple_array[0], p_dimple_array[1], p_dimple_array[2])
+
+    return t_h, p_dimple
