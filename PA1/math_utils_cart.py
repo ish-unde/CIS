@@ -195,7 +195,7 @@ def find_fd(frames, d_points):
         all_optical_D.extend(frame.D)
         all_d_points.extend(d_points)
 
-
+    
     F_d = find_rigid_transform(all_d_points, all_optical_D)
 
     return F_d
@@ -239,8 +239,8 @@ def compute_expected_C(frames, fd, all_fa, c_points):
             errors.append(error)
 
         mean_error = np.mean(errors)
-
         print(mean_error)
+  
 
     return all_C_expected
 
@@ -269,14 +269,17 @@ def read_calreadings(filename):
                 line = file.readline().strip()
                 x, y, z = map(float, line.split(','))
                 D_j.append(Point3D(x, y, z))
+
             for _ in range(num_a_points):
                 line = file.readline().strip()
                 x, y, z = map(float, line.split(','))
                 A_j.append(Point3D(x, y, z))
+
             for _ in range(num_c_points):
                 line = file.readline().strip()
                 x, y, z = map(float, line.split(','))
                 C_j.append(Point3D(x, y, z))
+
             frames.append(CalibrationFrame(D_j, A_j, C_j))
     return frames 
 
@@ -292,14 +295,19 @@ def read_calbody(filename):
         num_d_points = int(header_parts[0])
         num_a_points = int(header_parts[1])
         num_c_points = int(header_parts[2])
+
         for _ in range(num_d_points):
             line = file.readline().strip()
             x, y, z = map(float, line.split(','))
             d.append(Point3D(x, y, z))
+
+
         for _ in range(num_a_points):
             line = file.readline().strip()
             x, y, z = map(float, line.split(','))
             a.append(Point3D(x, y, z))
+
+
         for _ in range(num_c_points):
             line = file.readline().strip()
             x, y, z = map(float, line.split(','))
