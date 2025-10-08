@@ -66,34 +66,34 @@ def find_rigid_transform(points_A, points_B):
     A = np.array([p.to_array() for p in points_A]).T  
     B = np.array([p.to_array() for p in points_B]).T  
     
-    # Center the points - Step 1 
+    # turn into centroid
     centroid_A = np.mean(A, axis=1, keepdims=True)
     centroid_B = np.mean(B, axis=1, keepdims=True)
     
     A_centered = A - centroid_A
     B_centered = B - centroid_B
     
-    # Compute covariance matrix - Step 2 
+    # compute covariance matrix
     H = A_centered @ B_centered.T
     
     # SVD
     U, S, Vt = np.linalg.svd(H)
     
-    # Calculate rotation
+    # rotation
     R = Vt.T @ U.T
     
-    # Handle reflection case
+    # handle case of reflection
     if np.linalg.det(R) < 0:
         Vt[-1, :] *= -1
         R = Vt.T @ U.T
 
-    #Verifying that Det(R) = 1 
+    # checked properties of rotation matrix 
     assert np.isclose(np.linalg.det(R), 1.0), "Det(R) is not 1"
 
-    # Calculate translation - Step 3 
+    # find translation 
     t = centroid_B - R @ centroid_A
     
-    # Create Frame object - Step 4 
+    # make frame
     rotation = Rotation(R)
     translation = Point3D(t[0, 0], t[1, 0], t[2, 0])
     
@@ -130,8 +130,8 @@ class PivotCalibration:
         Method taken from class slides "Calibration"
             
         Returns:
-        tip_position: estimated tip position in tool coordinates (3,)
-        pivot_point: estimated pivot point in world coordinates (3,)
+            tip_position: estimated tip position in tool coordinates (3,)
+            pivot_point: estimated pivot point in world coordinates (3,)
         """
         if len(poses) < 2:
             raise ValueError("Need at least 2 poses for pivot calibration")
@@ -232,12 +232,11 @@ def compute_expected_C(frames, fd, all_fa, c_points):
 
         all_C_expected.append(c_set)
 
-
         # need to calculate erros associated with this transformation
         errors = []
 
         for expected, actual in zip(all_C_expected[i], frame.C):
-            error = np.linalg.norm(expected.x - actual.x, expected.y - actual.y, expected.z - actual.z)
+            error = np.linalg.norm([expected.x - actual.x, expected.y - actual.y, expected.z - actual.z])
             errors.append(error)
 
         mean_error = np.mean(errors)
@@ -308,25 +307,6 @@ def read_calbody(filename):
     return d, a, c        
 
 
-def parse_files(output_file, cal_read, cal_body):
-    """
-    function to parse files and compute the necessary transformations
-    
-    arguments:
-    output_file: str - base name for output files
-    cal_read: list of Frame - calibration readings (output of running read_calreadings))
-    cal_body: tuple of lists - (d_points, a_points, c_points) (output of running read_calbody)
-    """
-    frames = cal_read
-    d_points, a_points, c_points = cal_body
-
-    F_d = find_fd(frames, d_points)
-    F_a = find_fa(frames, a_points)
-
-    C_expected = compute_expected_C(frames, F_d, F_a, c_points)
-
-
-
 
 # question 5
 
@@ -335,25 +315,26 @@ class EmPivotFrame:
         self.g_points = g_points  
 
 
-
-
 def em_tracking(frames): 
+
     #extract Gj from empivot 5a (angela : passing the frames in @1:30am)
     g_frames = frames
     g_frames_first = g_frames[0]
+
     #get frame[0] to calculate midpoint 5a
-    g_midpointx, g_midpointy, g_midpointz = calculate_centroid(g_frames_first.g_points)  
+    g_midpoint = calculate_centroid(g_frames_first.g_points)  
+
     #then calculate gj!  5a
     g_j_points = []
     for point in g_frames_first.g_points:
         g_j = []
-        g_j = (point.x - g_midpointx, point.y - g_midpointy, point.z - g_midpointz)
+        g_j = Point3D(point.x - g_midpoint.x, point.y - g_midpoint.y, point.z - g_midpoint.z)
         g_j_points.append(g_j)
 
     #iterate through all frames to get FG[k] 5b
     F_G_frames = []
     for frame in g_frames: 
-        F_Gk = find_rigid_transform(frame.g_points, g_j.points)
+        F_Gk = find_rigid_transform(g_j_points, frame.g_points) # 10.7 @7:24 pm changed the order of paramteters -- angela
         F_G_frames.append(F_Gk)
     
     #5c, finding P_dimple using pivot calibration
@@ -387,7 +368,7 @@ def read_empivot(filename):
         header_parts = [part.strip() for part in header.split(',')]
 
         num_g_points = int(header_parts[0])
-        num_frames = int(header_parts[2])
+        num_frames = int(header_parts[1])
         
 
         for _ in range(num_frames):
@@ -490,20 +471,103 @@ def opt_pivot_calibration(frames, d_points):
     return t_h, p_dimple
 
 
-def write_ouput(output_file, N_c, N_frames, all_C_expected, em_post_pivot, opt_post_pivot):
+
+def write_registration(output_file, N_c, N_frames, all_C_expected):
+    with open(output_file, 'w') as file:
+        file.write(f"{N_c}, {N_frames}, {output_file}\n")
+
+        for expected in all_C_expected:
+            for c in expected:
+                file.write(f"{c.x:12.2f}, {c.y:12.2f}, {c.z:12.2f}\n")
+
+def write_em_pivot(output_file, em_post_pivot):
+    with open(output_file, 'w') as file:
+        file.write(f"{em_post_pivot.x:12.2f}, {em_post_pivot.y:12.2f}, {em_post_pivot.z:12.2f}\n")
+
+
+def write_opt_pivot(output_file, opt_post_pivot):
+    with open(output_file, 'w') as file:
+        file.write(f"{opt_post_pivot.x:12.2f}, {opt_post_pivot.y:12.2f}, {opt_post_pivot.z:12.2f}\n")
+
+def write_output(reg_file, em_file, opt_file, output_file):
+    """
     with open(output_file, 'w') as file:
         # line 1: N_c, N_frames, NAME-OUTPUT.TXT
         file.write(f"{N_c}, {N_frames}, {output_file}\n")
 
         # line 2 : estimated post position with EM probe pivot calibration
-        file.write(f"{em_post_pivot.x:12.6f}, {em_post_pivot.y:12.6fy}, {em_post_pivot.z:12.6f}\n")
+        if em_post_pivot is not None:
+            file.write(f"{em_post_pivot.x:12.2f}, {em_post_pivot.y:12.2f}, {em_post_pivot.z:12.2f}\n")
+        else:
+            file.write(f"{0.0:12.2f}, {0.0:12.2f}, {0.0:12.2f}\n") # write zeros in place
 
         # line 3 : estimated post position with optical probe pivot calibration
-        file.write(f"{opt_post_pivot.x:12.6f}, {opt_post_pivot.y:12.6f}, {opt_post_pivot.z:12.6f}\n")
-
+        if opt_post_pivot is not None:
+            file.write(f"{opt_post_pivot.x:12.2f}, {opt_post_pivot.y:12.2f}, {opt_post_pivot.z:12.6f}\n")
+        else:
+            file.write(f"{0.0:12.2f}, {0.0:12.2f}, {0.0:12.2f}\n") # write zeros in place
         # all lines onward
         # for each frame, print the expected C from 1 to N
         for expected in all_C_expected:
             for c in expected:
-                file.write(f"{c.x:12.6f}, {c.y:12.6f}, {c.z:12.6f}\n")
+                file.write(f"{c.x:12.2f}, {c.y:12.2f}, {c.z:12.2f}\n")
+"""
+    n_c = 0
+    n_frames = 0
+
+    reg_line = ""
+    reg_rest = []
+
+    em_line = ""
+    opt_line = ""
+
+    if reg_file.exists():
+        try:
+            with open(reg_file, 'r') as file:
+                reg_line = file.readline().strip()
+                reg_rest = file.readlines()
+        except Exception as e:
+            print(f"Error reading registration file {reg_file}: {e}")
+
+    if em_file.exists():
+        try:
+            with open(em_file, 'r') as file:
+                em_line = file.readline().strip()
+        except Exception as e:
+            print(f"Error reading EM pivot file {em_file}: {e}")
+
+    if opt_file.exists():
+        try:
+            with open(opt_file, 'r') as file:
+                opt_line = file.readline().strip()
+        except Exception as e:
+            print(f"Error reading OPT pivot file {opt_file}: {e}")
+    
+    with open(output_file, 'w') as file:
+        # line 1: N_c, N_frames, NAME-OUTPUT.TXT
+        if reg_line:
+            n_c = int(reg_line.split(',')[0].strip())
+            n_frames = int(reg_line.split(',')[1].strip())
+            file.write(f"{n_c}, {n_frames}, {output_file}\n")
+        else:
+            file.write(f"0, 0, {output_file}\n")
+
+        # line 2 : estimated post position with EM probe pivot calibration
+        if em_line:
+            file.write(f"{em_line}\n")
+        else:
+            file.write(f"{0.0:12.2f}, {0.0:12.2f}, {0.0:12.2f}\n") # write zeros in place
+
+        # line 3 : estimated post position with optical probe pivot calibration
+        if opt_line:
+            file.write(f"{opt_line}\n")
+        else:
+            file.write(f"{0.0:12.2f}, {0.0:12.2f}, {0.0:12.2f}\n") # write zeros in place
+
+        # all lines onward
+        for line in reg_rest:
+            file.write(line)
+
+
+
                 
