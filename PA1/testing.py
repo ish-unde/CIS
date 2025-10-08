@@ -1,7 +1,7 @@
 import numpy as np
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
 from file_io import read_points_from_file
-from math_utils_cart import PivotCalibration,calibrate
+from math_utils_cart import PivotCalibration,calibrate, em_tracking, EmPivotFrame
 
 def test_basic_math_operations():    
     # Test 1: Point3D operations
@@ -129,5 +129,39 @@ def test_calibrate_function():
     assert pivot_pt.shape == (3,)
     assert isinstance(cal.residual_error, float)
     print("Output is shape (3, ) test, ie passed")
+
+#Testing em_tracking from question 5
+
+#testing normal case with valid frames
+def test_em_tracking_valid_input():
+    points = [Point3D(1, 0, 0), Point3D(0, 1, 0), Point3D(0, 0, 1)]
+    frame1 = EmPivotFrame(points)
+    frame2 = EmPivotFrame([Point3D(p.x + 1, p.y, p.z) for p in points])  # shifted
+    t_g, P_dimple = em_tracking([frame1, frame2])
+
+    assert isinstance(t_g, Point3D)
+    assert isinstance(P_dimple, Point3D)
+
+#Test that function raises ValueError with only one frame.
+def test_em_tracking_single_frame_error():
+    points = [Point3D(1, 0, 0), Point3D(0, 1, 0), Point3D(0, 0, 1)]
+    frame = EmPivotFrame(points)
+    try:
+        em_tracking([frame])
+    except ValueError as e:
+        print("test_single_frame_error passed:", e)
+        return
+    print("test_single_frame_error failed (no error raised)")
+
+
+# Test behavior with identical frames (degenerate case)
+def test_em_tracking_identical_frames():
+    points = [Point3D(1, 0, 0), Point3D(0, 1, 0), Point3D(0, 0, 1)]
+    frame1 = EmPivotFrame(points)
+    frame2 = EmPivotFrame(points.copy())
+    t_g, P_dimple = em_tracking([frame1, frame2])
+
+    assert np.allclose([t_g.x, t_g.y, t_g.z], [1.0, 1.0, 1.0])
+    assert np.allclose([P_dimple.x, P_dimple.y, P_dimple.z], [0.0, 0.0, 0.0])
 
     
