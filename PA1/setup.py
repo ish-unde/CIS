@@ -12,8 +12,8 @@ setuptools.setup(
     install_requires=[
         "numpy",
         "scipy",
-        "rich",
-        "click",
+        "sis",
+        "pathlib",
     ],
     include_package_data=True,
     python_requires=">=3.9",
