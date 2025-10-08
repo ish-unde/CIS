@@ -1,4 +1,4 @@
-27, 8, output/h_registration.txt
+27, 8, output/a_registration.txt
 209.30, 208.86, 211.03
 207.25, 208.35, 336.01
 205.19, 207.84, 461.00

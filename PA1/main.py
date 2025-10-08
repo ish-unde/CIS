@@ -2,10 +2,10 @@ import sys
 import numpy as np
 from pathlib import Path
 import math_utils_cart
+from file_io import read_calbody, read_calreadings, read_empivot, read_optpivot, write_em_pivot, write_opt_pivot, write_registration, write_output
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
-from math_utils_cart import find_fd, find_fa, compute_expected_C, read_calbody, read_calreadings
-from math_utils_cart import read_empivot, read_optpivot, em_tracking, opt_pivot_calibration, write_output, write_registration, write_em_pivot, write_opt_pivot
-from file_io import read_points_from_file
+from math_utils_cart import find_fd, find_fa, compute_expected_C
+from math_utils_cart import em_tracking, opt_pivot_calibration
 # from testing import test_basic_math_operations, test_kabsch_algorithm
 import click
 
@@ -59,13 +59,11 @@ def main(data_dir, output_dir, calbody_file, calreadings_file, reg_output_file, 
     opt_pivot_post = None
 
 
-    cal_body = math_utils_cart.read_calbody(str(cal_path))
+    cal_body = read_calbody(str(cal_path))
 
-    cal_read = math_utils_cart.read_calreadings(str(calreadings))
+    cal_read = read_calreadings(str(calreadings))
 
-    # empivot = math_utils_cart.read_empivot(    f"{em_path}.txt")
-
-    optpivot = math_utils_cart.read_optpivot(str(opt_path))
+    optpivot = read_optpivot(str(opt_path))
     
     
     if calbody_file and calreadings_file and reg_output_file:
