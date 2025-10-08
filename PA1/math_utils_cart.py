@@ -17,11 +17,10 @@ class Point3D:
 
 class Rotation:
     def __init__(self, matrix):
-        # 3x3 rotation matrix
         self.matrix = np.array(matrix)
     
     def __matmul__(self, other):
-        # Matrix multiplication for rotations
+        # matrix multiplication
         if isinstance(other, Rotation):
             return Rotation(self.matrix @ other.matrix)
         elif isinstance(other, Point3D):
@@ -32,10 +31,10 @@ class Rotation:
 class Frame:
     def __init__(self, rotation, translation):
         self.rotation = rotation
-        self.translation = translation  # Point3D
+        self.translation = translation  
     
     def transform_point(self, point):
-        # F • p = R * p + t
+        # F dot p = R * p + t
         rotated = self.rotation @ point
         return Point3D(rotated.x + self.translation.x,
                       rotated.y + self.translation.y, 
@@ -43,14 +42,14 @@ class Frame:
     
     def inverse(self):
         # F^{-1} = (R^T, -R^T * t)
-        R_inv = Rotation(self.rotation.matrix.T)  # Transpose
+        R_inv = Rotation(self.rotation.matrix.T)  
         t_inv = R_inv @ Point3D(-self.translation.x, 
                                -self.translation.y, 
                                -self.translation.z)
         return Frame(R_inv, t_inv)
     
     def compose(self, other):
-        # F1 • F2
+        # F1 dot F2
         new_rotation = self.rotation @ other.rotation
         new_translation = self.transform_point(other.translation)
         return Frame(new_rotation, new_translation)
@@ -62,7 +61,6 @@ def find_rigid_transform(points_A, points_B):
     K.Arun et al. IEEE PAMI, Vol 9 no 5, September 1987.
 
     """
-    # Convert to numpy 
     A = np.array([p.to_array() for p in points_A]).T  
     B = np.array([p.to_array() for p in points_B]).T  
     
@@ -76,7 +74,7 @@ def find_rigid_transform(points_A, points_B):
     # compute covariance matrix
     H = A_centered @ B_centered.T
     
-    # SVD
+    # use SVD
     U, S, Vt = np.linalg.svd(H)
     
     # rotation
@@ -99,7 +97,6 @@ def find_rigid_transform(points_A, points_B):
     
     return Frame(rotation, translation)
 
-#Calculate centroid of a set of points
 def calculate_centroid(points):
     if not points:
         return Point3D(0, 0, 0)
@@ -111,7 +108,6 @@ def calculate_centroid(points):
     
     return Point3D(sum_x/n, sum_y/n, sum_z/n)
 
-#Apply frame transformation to a list of points
 def transform_points(frame, points):
     return [frame.transform_point(p) for p in points]
 
@@ -138,7 +134,7 @@ class PivotCalibration:
     
         n_poses = len(poses)
         
-        # Settuping the matricies for the poses based on calibrations 
+        # setting up the matricies for the poses based on calibrations 
         A = np.zeros((3 * n_poses, 6))
         b = np.zeros(3 * n_poses)
         
@@ -146,21 +142,21 @@ class PivotCalibration:
             start_idx = 3 * i
             end_idx = 3 * i + 3
             
-            # Fill A matrix
+            # matrix A
             A[start_idx:end_idx, 0:3] = R  # R_j for p_t
             A[start_idx:end_idx, 3:6] = -np.eye(3)  # -I for p_pivot
             
-            # Fill b vector
+            # b vector
             b[start_idx:end_idx] = -p
         
-        # Solve using least squares
+        # least squares
         x, residuals, rank, s = linalg.lstsq(A, b)
 
-        # Check solution quality
+        # check solution of least squares
         if rank < 6:
             print(f"System is underdetermined, rank is < 6: {rank}")
 
-        #Check if its a valid rotation by checking if Det(R) = 1
+        # check if valid rotation matrix
         if np.isclose(np.linalg.det(R), 1):
             print("Valid rotation matrix with Det(R) = 1")
 
@@ -178,13 +174,14 @@ class PivotCalibration:
 
 class CalibrationFrame:
     def __init__(self, D, A, C):
-        self.D = D  # List of Point3D
-        self.A = A  # List of Point3D
-        self.C = C  # List of Point3D
+        # points are in 3D
+        self.D = D  
+        self.A = A  
+        self.C = C  
 
 
 
-# number 4
+# question 4
 
 def find_fd(frames, d_points):
     """ 
@@ -209,11 +206,9 @@ def find_fa(frames, a_points):
     """
     all_F_a = []
 
-    for i, frame in enumerate(frames):
+    for frame in frames:
         F_a = find_rigid_transform(a_points, frame.A)
         all_F_a.append(F_a)
-
-    # not sure if we have to computer an eror metric here
 
     return all_F_a
 
@@ -236,7 +231,7 @@ def compute_expected_C(frames, fd, all_fa, c_points):
 
         all_C_expected.append(c_set)
 
-        # need to calculate erros associated with this transformation
+        # need to calculate errors associated with this transformation
         errors = []
 
         for expected, actual in zip(all_C_expected[i], frame.C):
@@ -338,7 +333,7 @@ def em_tracking(frames):
     #iterate through all frames to get FG[k] 5b
     F_G_frames = []
     for frame in g_frames: 
-        F_Gk = find_rigid_transform(g_j_points, frame.g_points) # 10.7 @7:24 pm changed the order of paramteters -- angela
+        F_Gk = find_rigid_transform(g_j_points, frame.g_points) 
         F_G_frames.append(F_Gk)
     
     #5c, finding P_dimple using pivot calibration
@@ -355,8 +350,6 @@ def em_tracking(frames):
 
     t_g = Point3D(t_g_array[0], t_g_array[1], t_g_array[2])
     P_dimple = Point3D(P_dimple_array[0], P_dimple_array[1], P_dimple_array[2])
-
-    # t_g, P_dimple = calibrate(poses)
 
     return t_g, P_dimple
         
@@ -450,15 +443,12 @@ def opt_pivot_calibration(frames, d_points):
 
         fd = find_rigid_transform(d_points, D)
 
-        # checking error
-
         fd_inv = fd.inverse()
 
         h_em = [fd_inv.transform_point(h) for h in H]
 
         fh = find_rigid_transform(h_j_points, h_em)
 
-        # verify transformation through error
 
         rotation = fh.rotation.matrix
         translation = fh.translation.to_array() 
