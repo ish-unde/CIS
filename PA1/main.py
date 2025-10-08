@@ -99,7 +99,7 @@ def main(data_dir, output_dir, calbody_file, calreadings_file, reg_output_file, 
             print(f"Unexpected {err=}, {type(err)=}")
             raise
         pass
-    elif opt_file and opt_output_file and opt_output_file():
+    elif opt_file and opt_output_file and opt_output_file:
         # question 6.
         try:
             d_points = cal_body[0]

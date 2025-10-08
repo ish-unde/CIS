@@ -167,7 +167,11 @@ class PivotCalibration:
         # update points and error 
         self.tip_position = x[0:3]
         self.pivot_point = x[3:6]
-        self.residual_error = np.sqrt(np.sum(residuals) / n_poses) if len(residuals) > 0 else 0
+
+        if residuals.size > 0:
+            self.residual_error = np.sqrt(np.sum(residuals)  / n_poses)
+        else:
+            self.residual_error = 0.0
         
         return self.tip_position, self.pivot_point
 
@@ -429,12 +433,12 @@ def opt_pivot_calibration(frames, d_points):
     opt_frames = frames
     first_frame = opt_frames[0]
     h_points_first = first_frame.h_points
-    h_midpointx, h_midpointy, h_midpointz = calculate_centroid(h_points_first)  
+    h_midpoint = calculate_centroid(h_points_first)  
     
     h_j_points = []
 
     for point in first_frame.h_points:
-        h_j = Point3D(point.x - h_midpointx, point.y - h_midpointy, point.z - h_midpointz)
+        h_j = Point3D(point.x - h_midpoint.x, point.y - h_midpoint.y, point.z - h_midpoint.z)
         h_j_points.append(h_j)
 
     
@@ -478,7 +482,7 @@ def write_registration(output_file, N_c, N_frames, all_C_expected):
 
         for expected in all_C_expected:
             for c in expected:
-                file.write(f"{c.x:12.2f}, {c.y:12.2f}, {c.z:12.2f}\n")
+                file.write(f"{c.x:.2f}, {c.y:.2f}, {c.z:.2f}\n")
 
 def write_em_pivot(output_file, em_post_pivot):
     with open(output_file, 'w') as file:
@@ -490,28 +494,6 @@ def write_opt_pivot(output_file, opt_post_pivot):
         file.write(f"{opt_post_pivot.x:12.2f}, {opt_post_pivot.y:12.2f}, {opt_post_pivot.z:12.2f}\n")
 
 def write_output(reg_file, em_file, opt_file, output_file):
-    """
-    with open(output_file, 'w') as file:
-        # line 1: N_c, N_frames, NAME-OUTPUT.TXT
-        file.write(f"{N_c}, {N_frames}, {output_file}\n")
-
-        # line 2 : estimated post position with EM probe pivot calibration
-        if em_post_pivot is not None:
-            file.write(f"{em_post_pivot.x:12.2f}, {em_post_pivot.y:12.2f}, {em_post_pivot.z:12.2f}\n")
-        else:
-            file.write(f"{0.0:12.2f}, {0.0:12.2f}, {0.0:12.2f}\n") # write zeros in place
-
-        # line 3 : estimated post position with optical probe pivot calibration
-        if opt_post_pivot is not None:
-            file.write(f"{opt_post_pivot.x:12.2f}, {opt_post_pivot.y:12.2f}, {opt_post_pivot.z:12.6f}\n")
-        else:
-            file.write(f"{0.0:12.2f}, {0.0:12.2f}, {0.0:12.2f}\n") # write zeros in place
-        # all lines onward
-        # for each frame, print the expected C from 1 to N
-        for expected in all_C_expected:
-            for c in expected:
-                file.write(f"{c.x:12.2f}, {c.y:12.2f}, {c.z:12.2f}\n")
-"""
     n_c = 0
     n_frames = 0
 
