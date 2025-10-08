@@ -13,7 +13,7 @@ Instructions to run main.py:
 3. to run question 6, use: python main.py --opt_file pa1-debug-a-optpivot --opt_output_file a_opt_pivot 
 4. to run question 4c, use: python main.py --combine --reg a_registration --em a_em_pivot --opt a_opt_pivot --output a_all_outputs 
 
-All functions are located in math_utils_cart.py with detailed description of functionality. 
+All utility functions are located in math_utils_cart.py with detailed description of functionality. All I/O functionality is located in file_io.py.
 
 testing.py contains all unit tests + synthetic data used to test the functionality of each individual function in math_utils_cart.py. 
 
