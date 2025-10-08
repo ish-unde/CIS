@@ -136,7 +136,7 @@ if __name__ == "__main__":
 """ Solutions to 4a, 4b, 4c, 4d, 5, and 6
 
         To generated the c_expected for points a, run:
-        python main.py --calbody_file pa1-debug-a-calbody --calreadings_file pa1-debug-a-calreadings --reg_ourput_file a_registration
+        python main.py --calbody_file pa1-debug-a-calbody --calreadings_file pa1-debug-a-calreadings --reg_output_file a_registration
 
 
         To generate the EM pivot for points a, run:

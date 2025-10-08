@@ -240,6 +240,8 @@ def compute_expected_C(frames, fd, all_fa, c_points):
 
         mean_error = np.mean(errors)
 
+        print(mean_error)
+
     return all_C_expected
 
 
