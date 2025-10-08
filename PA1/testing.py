@@ -1,7 +1,7 @@
 import numpy as np
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
 from file_io import read_points_from_file
-from math_utils_cart import PivotCalibration,calibrate, em_tracking, EmPivotFrame
+from math_utils_cart import PivotCalibration, calibrate, em_tracking, EmPivotFrame
 
 def test_basic_math_operations():    
     # Test 1: Point3D operations
