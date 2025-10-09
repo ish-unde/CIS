@@ -218,6 +218,7 @@ def compute_expected_C(frames, fd, all_fa, c_points):
 
     all_C_expected = []
     fd_inv = fd.inverse()
+    all_errors = []
 
     for i, (frame, f_a) in enumerate(zip(frames, all_fa)):
         f_composite = fd_inv.compose(f_a)
@@ -237,9 +238,12 @@ def compute_expected_C(frames, fd, all_fa, c_points):
             error = np.linalg.norm([expected.x - actual.x, expected.y - actual.y, expected.z - actual.z])
             errors.append(error)
 
-        mean_error = np.mean(errors)
-        print(mean_error)
-  
+        frame_mean_error = np.mean(errors)
+
+        all_errors.extend(errors)
+    
+    mean_error = np.mean(all_errors)
+    print(mean_error)
 
     return all_C_expected
 
