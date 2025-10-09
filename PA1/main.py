@@ -101,7 +101,8 @@ def main(data_dir, output_dir, calbody_file, calreadings_file, reg_output_file, 
         # question 6.
         try:
             d_points = cal_body[0]
-            t_h, p_dimple = opt_pivot_calibration(optpivot, d_points)
+            fd = find_fd(cal_read, d_points)
+            t_h, p_dimple = opt_pivot_calibration(optpivot, d_points, fd)
 
             opt_pivot_post = p_dimple
 

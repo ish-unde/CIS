@@ -188,14 +188,14 @@ def find_fd(frames, d_points):
     """
 
     all_optical_D = []
-    all_d_points = []
+    all_em_d_points = []
 
     for frame in frames:
         all_optical_D.extend(frame.D)
-        all_d_points.extend(d_points)
+        all_em_d_points.extend(d_points)
 
     
-    F_d = find_rigid_transform(all_d_points, all_optical_D)
+    F_d = find_rigid_transform(all_em_d_points, all_optical_D)
 
     return F_d
 
@@ -267,7 +267,6 @@ def em_tracking(frames):
     #then calculate gj!  5a
     g_j_points = []
     for point in g_frames_first.g_points:
-        g_j = []
         g_j = Point3D(point.x - g_midpoint.x, point.y - g_midpoint.y, point.z - g_midpoint.z)
         g_j_points.append(g_j)
 
@@ -304,16 +303,20 @@ class OptPivotFrame:
 
 
 
-def opt_pivot_calibration(frames, d_points):
+def opt_pivot_calibration(frames, d_points, fd):
     
     opt_frames = frames
     first_frame = opt_frames[0]
-    h_points_first = first_frame.h_points
+
+    fd_inv = fd.inverse()
+
+    h_points_first = [fd_inv.transform_point(h) for h in first_frame.h_points]
+
     h_midpoint = calculate_centroid(h_points_first)  
     
     h_j_points = []
 
-    for point in first_frame.h_points:
+    for point in h_points_first:
         h_j = Point3D(point.x - h_midpoint.x, point.y - h_midpoint.y, point.z - h_midpoint.z)
         h_j_points.append(h_j)
 
@@ -321,17 +324,9 @@ def opt_pivot_calibration(frames, d_points):
     poses = []
 
     for frame in opt_frames:
-        D = frame.d_points
-        H = frame.h_points
-
-        fd = find_rigid_transform(d_points, D)
-
-        fd_inv = fd.inverse()
-
-        h_em = [fd_inv.transform_point(h) for h in H]
+        h_em = [fd_inv.transform_point(h) for h in frame.h_points]
 
         fh = find_rigid_transform(h_j_points, h_em)
-
 
         rotation = fh.rotation.matrix
         translation = fh.translation.to_array() 
