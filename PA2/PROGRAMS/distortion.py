@@ -122,4 +122,5 @@ class DistortionCorrector:
 
     def correct(self, points):
         distortion = self.predict_distortion(points)
-        return points + distortion              
+        return points + distortion     
+         
