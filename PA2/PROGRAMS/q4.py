@@ -197,7 +197,7 @@ def read_ct_fiducials(filename):
         header_parts = [part.strip() for part in header.split(',')]
         
         N_B = int(header_parts[0])
-        # filename = header_parts[1]  # Optional: if you want to verify filename
+        # filename = header_parts[1] 
         
         # Next N_B lines: b_x,i, b_y,i, b_z,i
         for _ in range(N_B):
