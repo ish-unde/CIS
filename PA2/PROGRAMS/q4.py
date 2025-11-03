@@ -239,3 +239,49 @@ def compute_registration_error(F_reg, b_j_em, ct_fiducials_file):
     
     return np.mean(errors)
 
+#question 6 
+
+def solve_question_6(em_nav_file, distortion_corrector, pivot_tip_G, g_j_reference, F_reg, output_file):
+    """
+    Question 6: Process navigation data and output CT coordinates
+
+    """
+    # Read navigation data
+    nav_frames = read_empivot(em_nav_file)
+    
+    tip_positions_ct = []
+    
+    for frame in nav_frames:
+        # Step 1: Convert frame to numpy and apply distortion correction
+        frame_points = []
+        for point3d in frame.g_points:
+            frame_points.append([point3d.x, point3d.y, point3d.z])
+        frame_np = np.array(frame_points)
+        
+        corrected_frame_np = distortion_corrector.correct(frame_np)
+        
+        # Step 2: Convert back to Point3D and compute probe transform
+        corrected_points = [Point3D(p[0], p[1], p[2]) for p in corrected_frame_np]
+        F_G = find_rigid_transform(g_j_reference, corrected_points)
+        
+        # Step 3: Compute tip position in EM tracker coordinates
+        tip_position_em = F_G.transform_point(pivot_tip_G)
+        
+        # Step 4: Transform to CT coordinates using registration
+        tip_position_ct = F_reg.transform_point(tip_position_em)
+        
+        tip_positions_ct.append([tip_position_ct.x, tip_position_ct.y, tip_position_ct.z])
+    
+    # Write output file
+    write_output2_file(output_file, tip_positions_ct)
+    
+    return np.array(tip_positions_ct)
+
+def write_output2_file(output_file, tip_positions_ct):
+    N_frames = len(tip_positions_ct)
+    
+    with open(output_file, 'w') as file:
+        file.write(f"{N_frames}, {output_file}\n")
+        for tip_pos in tip_positions_ct:
+            file.write(f"{tip_pos[0]:.2f}, {tip_pos[1]:.2f}, {tip_pos[2]:.2f}\n")
+
