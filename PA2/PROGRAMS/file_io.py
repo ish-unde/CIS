@@ -230,7 +230,7 @@ def write_output2(output_file, tip_positions_ct):
 
 
 
-)
+
 
 
 

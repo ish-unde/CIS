@@ -158,11 +158,9 @@ def find_f_reg(ct_fiducials_data, b_j_em):
     Question 5: Compute registration frame F_reg that maps EM coordinates to CT coordinates
 
     """
-    # Convert b_j_em numpy array to Point3D objects
     points_em = [Point3D(p[0], p[1], p[2]) for p in b_j_em]
     points_ct = ct_fiducials_data
     
-    # Compute registration: find F such that points_ct = F • points_em
     F_reg = find_rigid_transform(points_em, points_ct)
     
     return F_reg
@@ -174,13 +172,11 @@ def compute_probe_transform(current_points, reference_points):
     """
     Compute the transform from probe coordinates to tracker coordinates
     """
-    # Convert reference_points (numpy array) to Point3D objects if needed
     if isinstance(reference_points, np.ndarray):
         ref_points_p3d = [Point3D(p[0], p[1], p[2]) for p in reference_points]
     else:
         ref_points_p3d = reference_points
     
-    # Use your existing rigid transform function
     F_G = find_rigid_transform(ref_points_p3d, current_points)
     return F_G
 
@@ -194,21 +190,17 @@ def navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_refere
         g_measured_points = frame.g_points  
         g_measured = np.array([[p.x, p.y, p.z] for p in g_measured_points])
         
-        # Apply distortion correction
         g_corrected = distortion_corrector.correct(g_measured)
         
         corrected_points = [Point3D(p[0], p[1], p[2]) for p in g_corrected]
         F_G = compute_probe_transform(corrected_points, g_j_reference)
         
-        # Compute tip in EM coordinates
         tip_em = F_G.transform_point(t_g_corrected)
         
-        # Transform to CT coordinates
         tip_ct = F_reg.transform_point(tip_em)
         tip_positions_ct.append([tip_ct.x, tip_ct.y, tip_ct.z])
     
     
     return np.array(tip_positions_ct)
 
-#helper func for question 6 
 
