@@ -24,8 +24,15 @@ def test_distortion_corrector_fit_and_predict():
     
     original_error = np.mean(np.linalg.norm(measured - expected, axis=1))
     corrected_error = np.mean(np.linalg.norm(corrected - expected, axis=1))
+
+    original_rmse = np.sqrt(np.mean(original_error**2))
+    corrected_rmse = np.sqrt(np.mean(corrected_error**2))
     
-    assert corrected_error < original_error * 0.1  # Significant improvement
+    print(f"Distortion Correction Results:")
+    print(f"  Original RMSE: {original_rmse:.6f} mm")
+    print(f"  Corrected RMSE: {corrected_rmse:.6f} mm")
+    print(f"  Mean absolute error reduction: {np.mean(original_error - corrected_error):.6f} mm")
+    assert corrected_error < original_error * 0.1  
     assert corrector.coefficients is not None
     print("Distortion corrector fit/predict test passed")
 
@@ -40,7 +47,7 @@ def test_distortion_corrector_feature_generation():
     
     corrector_deg2 = DistortionCorrector(degree=2)
     features_deg2 = corrector_deg2.compute_feature(points)
-    assert features_deg2.shape[1] == 10  # All combinations up to degree 2
+    assert features_deg2.shape[1] == 10  
     
     print("Feature generation test passed")
 
@@ -64,11 +71,24 @@ def test_b_j_locations_computation():
     g_j_reference = [Point3D(1, 0, 0), Point3D(0, 1, 0), Point3D(0, 0, 1)]
     
     b_j_location = b_j_locations(synthetic_frames, corrector, t_g, g_j_reference)
+
+    positions = np.array([[p.x, p.y, p.z] for p in b_j_location])
+    position_ranges = np.ptp(positions, axis=0)  # Peak-to-peak range
+    mean_positions = np.mean(positions, axis=0)
+    std_positions = np.std(positions, axis=0)
+
+    print(f"B_j Locations Computation Results:")
+    print(f"  Number of frames processed: {len(b_j_location)}")
+    print(f"  Position ranges (x, y, z): [{position_ranges[0]:.2f}, {position_ranges[1]:.2f}, {position_ranges[2]:.2f}] mm")
+    print(f"  Mean positions (x, y, z): [{mean_positions[0]:.2f}, {mean_positions[1]:.2f}, {mean_positions[2]:.2f}] mm")
+    print(f"  Standard deviations (x, y, z): [{std_positions[0]:.3f}, {std_positions[1]:.3f}, {std_positions[2]:.3f}] mm")
     
     assert len(b_j_location) == len(synthetic_frames)
     for point in b_j_location:
         assert isinstance(point, Point3D)
     print("B_j locations computation test passed")
+
+
 
 def test_b_j_locations_with_distortion():
     """Test fiducial computation with actual distortion correction."""
@@ -76,14 +96,17 @@ def test_b_j_locations_with_distortion():
     synthetic_frames = []
     base_points = [Point3D(10, 20, 30), Point3D(15, 25, 35), Point3D(20, 30, 40)]
     
+    uncorrected_positions = []
     for i in range(3):
         distorted_points = []
+        frame_uncorrected = []
         for p in base_points:
-
             distorted = Point3D(p.x + 0.1 * i, p.y, p.z)
             distorted_points.append(distorted)
+            frame_uncorrected.append([distorted.x, distorted.y, distorted.z])
         synthetic_frames.append(type('Frame', (), {'g_points': distorted_points})())
-    
+        uncorrected_positions.append(np.mean(frame_uncorrected, axis=0))
+
     class MockCorrector:
         def correct(self, points):
             corrected = points.copy()
@@ -96,9 +119,20 @@ def test_b_j_locations_with_distortion():
     
     b_j_location = b_j_locations(synthetic_frames, corrector, t_g, g_j_reference)
     
-    positions = np.array([[p.x, p.y, p.z] for p in b_j_location])
-    variances = np.var(positions, axis=0)
-    assert np.all(variances < 1.0) 
+    corrected_positions = np.array([[p.x, p.y, p.z] for p in b_j_location])
+    corrected_variances = np.var(corrected_positions, axis=0)
+
+    uncorrected_array = np.array(uncorrected_positions)
+    uncorrected_variances = np.var(uncorrected_array, axis=0)
+    
+    variance_reduction = uncorrected_variances / corrected_variances
+
+    print(f"B_j Locations with Distortion Correction Results:")
+    print(f"  Uncorrected variances (x, y, z): [{uncorrected_variances[0]:.6f}, {uncorrected_variances[1]:.6f}, {uncorrected_variances[2]:.6f}]")
+    print(f"  Corrected variances (x, y, z): [{corrected_variances[0]:.6f}, {corrected_variances[1]:.6f}, {corrected_variances[2]:.6f}]")
+    print(f"  Variance reduction ratios (x, y, z): [{variance_reduction[0]:.2f}, {variance_reduction[1]:.2f}, {variance_reduction[2]:.2f}]")
+
+    assert np.all(corrected_variances < 1.0) 
     print("B_j locations with distortion correction test passed")
 
 
