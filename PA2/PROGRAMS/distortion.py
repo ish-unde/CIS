@@ -136,24 +136,20 @@ def b_j_locations(em_fiducials_data, distortion_corrector, pivot_tip_G, g_j_refe
         g_j_ref_points = g_j_reference
     
     for frame in em_fiducials_data:
-        # EM marker measurements 
         g_measured_points = frame.g_points
         
-        # Point3D objects to numpy array
         g_measured = np.array([[p.x, p.y, p.z] for p in g_measured_points])
         
-        #  distortion correction
         g_corrected = distortion_corrector.correct(g_measured)
         
-        #  rigid transform
         corrected_points = [Point3D(p[0], p[1], p[2]) for p in g_corrected]
         F_G = find_rigid_transform(g_j_ref_points, corrected_points)
         
-        # Compute tip position in EM coordinates
         tip_position_em = F_G.transform_point(pivot_tip_G)
-        b_j_em.append([tip_position_em.x, tip_position_em.y, tip_position_em.z])
+        
+        b_j_em.append(tip_position_em)
     
-    return np.array(b_j_em)
+    return b_j_em
 
 #question 5 
 def find_f_reg(ct_fiducials_data, b_j_em):

@@ -205,79 +205,20 @@ def read_em_nav(filename):
 
 
 
-def write_registration(output_file, N_c, N_frames, all_C_expected):
-    with open(output_file, 'w') as file:
-        file.write(f"{N_c}, {N_frames}, {output_file}\n")
-
-        for expected in all_C_expected:
-            for c in expected:
-                file.write(f"{c.x:.2f}, {c.y:.2f}, {c.z:.2f}\n")
-
-def write_em_pivot(output_file, em_post_pivot):
-    with open(output_file, 'w') as file:
-        file.write(f"{em_post_pivot.x:12.2f}, {em_post_pivot.y:12.2f}, {em_post_pivot.z:12.2f}\n")
 
 
-def write_opt_pivot(output_file, opt_post_pivot):
-    with open(output_file, 'w') as file:
-        file.write(f"{opt_post_pivot.x:12.2f}, {opt_post_pivot.y:12.2f}, {opt_post_pivot.z:12.2f}\n")
+def write_output1(output1_path, a, b, expected_C_all):
+    n_c = a
+    n_frames = b
 
-def write_output(reg_file, em_file, opt_file, output_file):
-    n_c = 0
-    n_frames = 0
+    with open(output1_path, 'w') as file:
 
-    reg_line = ""
-    reg_rest = []
+        file.write(f"{n_c}, {n_frames}, {output1_path.name}\n")
 
-    em_line = ""
-    opt_line = ""
+        for frame_expected in expected_C_all:
+            for point3d in frame_expected:
+                file.write(f"{point3d.x:.2f}, {point3d.y:.2f}, {point3d.z:.2f}\n")
 
-    if reg_file.exists():
-        try:
-            with open(reg_file, 'r') as file:
-                reg_line = file.readline().strip()
-                reg_rest = file.readlines()
-        except Exception as e:
-            print(f"Error reading registration file {reg_file}: {e}")
-
-    if em_file.exists():
-        try:
-            with open(em_file, 'r') as file:
-                em_line = file.readline().strip()
-        except Exception as e:
-            print(f"Error reading EM pivot file {em_file}: {e}")
-
-    if opt_file.exists():
-        try:
-            with open(opt_file, 'r') as file:
-                opt_line = file.readline().strip()
-        except Exception as e:
-            print(f"Error reading OPT pivot file {opt_file}: {e}")
-    
-    with open(output_file, 'w') as file:
-        # line 1: N_c, N_frames, NAME-OUTPUT.TXT
-        if reg_line:
-            n_c = int(reg_line.split(',')[0].strip())
-            n_frames = int(reg_line.split(',')[1].strip())
-            file.write(f"{n_c}, {n_frames}, {output_file}\n")
-        else:
-            file.write(f"0, 0, {output_file}\n")
-
-        # line 2 : estimated post position with EM probe pivot calibration
-        if em_line:
-            file.write(f"{em_line}\n")
-        else:
-            file.write(f"{0.0:12.2f}, {0.0:12.2f}, {0.0:12.2f}\n") # write zeros in place
-
-        # line 3 : estimated post position with optical probe pivot calibration
-        if opt_line:
-            file.write(f"{opt_line}\n")
-        else:
-            file.write(f"{0.0:12.2f}, {0.0:12.2f}, {0.0:12.2f}\n") # write zeros in place
-
-        # all lines onward
-        for line in reg_rest:
-            file.write(line)
 
 
 #added for P2

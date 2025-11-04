@@ -10,7 +10,7 @@ Instructions to run main.py:
 
 In terminal, run the following command:
 
-python PROGRAMS/main.py --data_dir "pa_2_student_data/PA 2 Student Data" --output_dir "output" --calbody_file pa2-debug-a-calbody --calreadings_file pa2-debug-a-calreadings --empivot_file pa2-debug-a-empivot --ct_fiducials_file pa2-debug-a-ct-fiducials --em_fiducials_file pa2-debug-a-em-fiducialss --em_nav_file pa2-debug-a-EM-nav --output_file pa2-debug-a-output2.txt --output_file_1 pa2-debug-a-output1.txt 
+python PROGRAMS/main.py --data_dir "pa_2_student_data/PA 2 Student Data" --output_dir "output" --calbody_file pa2-debug-a-calbody --calreadings_file pa2-debug-a-calreadings --empivot_file pa2-debug-a-empivot --ct_fiducials_file pa2-debug-a-ct-fiducials --em_fiducials_file pa2-debug-a-em-fiducials --em_nav_file pa2-debug-a-EM-nav --output_file2 pa2-debug-a-output2.txt --output_file1 pa2-debug-a-output1.txt 
 
 replacing the files as needed depending on the run you intend 
 
