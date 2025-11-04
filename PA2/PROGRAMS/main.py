@@ -5,7 +5,6 @@ from file_io import read_calbody, read_calreadings, read_empivot, read_ct_fiduci
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
 from math_utils_cart import find_fd, find_fa, compute_expected_C, em_tracking
 from distortion import DistortionCorrector, b_j_locations, find_f_reg, navigation_data
-# from registration import point_set_registration, transform_point
 import click
 
 
@@ -116,8 +115,13 @@ def main(data_dir, output_dir, calbody_file, calreadings_file, empivot_file,
     F_reg = find_f_reg(ct_fiducials_data, b_j_em)
 
     #question 6: process navigation data 
-    output_file_path = output_path / "pa2-debug-a-output2.txt"
-    tip_positions_ct = navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_reference, F_reg, output_file_path)
+    if output_file:
+        output_file_path = output_path / output_file
+    else:
+        # Auto-generate output filename based on input files
+        output_file_path = output_path / f"{calbody_file.replace('-calbody', '')}-output.txt"
+    
+    navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_reference, F_reg, output_file_path)
         
 if __name__ == "__main__":
     main()
