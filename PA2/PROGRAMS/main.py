@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from pathlib import Path
-from file_io import read_calbody, read_calreadings, read_empivot, read_ct_fiducials, read_em_fiducials, read_em_nav, read_optpivot, write_output1
+from file_io import read_calbody, read_calreadings, read_empivot, read_ct_fiducials, read_em_fiducials, read_em_nav, read_optpivot, write_output1, write_output2
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
 from math_utils_cart import find_fd, find_fa, compute_expected_C, em_tracking, opt_pivot_calibration
 from distortion import DistortionCorrector, b_j_locations, find_f_reg, navigation_data
@@ -111,7 +111,9 @@ def main(data_dir, output_dir, calbody_file, calreadings_file, empivot_file,
     else:
         output2_path = output_path / f"{calbody_file.replace('-calbody', '')}-output.txt"
     
-    navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_reference, F_reg, output2_path)
+    ct_tip_positions = navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_reference, F_reg, output2_path)
+
+    write_output2(output2_path, ct_tip_positions)
         
 if __name__ == "__main__":
     main()

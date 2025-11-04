@@ -220,17 +220,18 @@ def write_output1(output1_path, a, b, expected_C_all):
                 file.write(f"{point3d.x:.2f}, {point3d.y:.2f}, {point3d.z:.2f}\n")
 
 
-
-#added for P2
-def write_em_output(output_file, em_frames):
-    n_frames = len(em_frames)
-
+def write_output2(output_file, tip_positions_ct):
+    N_frames = len(tip_positions_ct)
+    
     with open(output_file, 'w') as file:
-        # line 1: N_frames, NAME-OUTPUT.TXT
-        file.write(f"{n_frames}, {output_file}\n")
+        file.write(f"{N_frames}, {output_file}\n")
+        for tip_pos in tip_positions_ct:
+            file.write(f"{tip_pos[0]:8.2f}, {tip_pos[1]:8.2f}, {tip_pos[2]:8.2f}\n")
 
-        for frame in em_frames:
-            for v in frame.v_points:
-                file.write(f"{v.x:.2f}, {v.y:.2f}, {v.z:.2f}\n")
+
+
+)
+
+
 
 

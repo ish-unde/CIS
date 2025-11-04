@@ -206,17 +206,8 @@ def navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_refere
         tip_ct = F_reg.transform_point(tip_em)
         tip_positions_ct.append([tip_ct.x, tip_ct.y, tip_ct.z])
     
-    # Write output file
-    write_output2_file(output_file, tip_positions_ct)
     
     return np.array(tip_positions_ct)
 
 #helper func for question 6 
-def write_output2_file(output_file, tip_positions_ct):
-    N_frames = len(tip_positions_ct)
-    
-    with open(output_file, 'w') as file:
-        file.write(f"{N_frames}, {output_file}\n")
-        for tip_pos in tip_positions_ct:
-            file.write(f"{tip_pos[0]:8.2f}, {tip_pos[1]:8.2f}, {tip_pos[2]:8.2f}\n")
 
