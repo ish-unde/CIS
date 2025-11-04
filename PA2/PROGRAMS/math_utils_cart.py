@@ -186,7 +186,7 @@ def find_fd(d_points, calreadings_data):
     all_em_d_points = []
 
     for frame in calreadings_data:
-        all_optical_D.extend(frame.D)  # Use .D not ['D']
+        all_optical_D.extend(frame.D)  
         all_em_d_points.extend(d_points)
 
     F_d = find_rigid_transform(all_em_d_points, all_optical_D)
@@ -199,14 +199,14 @@ def find_fa(a_points, calreadings_data, fd):
     all_F_a = []
 
     for frame in calreadings_data:
-        F_a = find_rigid_transform(a_points, frame.A)  # Use .A not ['A']
+        F_a = find_rigid_transform(a_points, frame.A) 
         all_F_a.append(F_a)
 
     return all_F_a
 
 def compute_expected_C(calreadings_data, fd, all_fa, c_points):
     """
-    computing the expected C position: C_expected = FD^-1 * FA * c_j
+    computing the expected C position using logic C_expected = FD^-1 * FA * c_j
     """
     all_C_expected = []
     fd_inv = fd.inverse()
@@ -222,9 +222,8 @@ def compute_expected_C(calreadings_data, fd, all_fa, c_points):
 
         all_C_expected.append(c_set)
 
-        # FIX: Use attribute access
         errors = []
-        for expected, actual in zip(all_C_expected[i], frame.C):  # Use .C not ['C']
+        for expected, actual in zip(all_C_expected[i], frame.C):  
             error = np.linalg.norm([expected.x - actual.x, expected.y - actual.y, expected.z - actual.z])
             errors.append(error)
 
@@ -243,7 +242,7 @@ class EmPivotFrame:
 
 
 def em_tracking(g_frames): 
-    # Extract Gj from empivot, changed for PA2 to handle both EmPivotFrame objects and dictionaries
+    # Extract Gj from empivot, this function changed for PA2 to handle both EmPivotFrame objects and dictionaries
     g_frames_first = g_frames[0]
     
     if hasattr(g_frames_first, 'g_points'): 
