@@ -1,22 +1,17 @@
 import sys
 import numpy as np
 from pathlib import Path
-import math_utils_cart
-from file_io import (
-    read_calbody, read_calreadings, read_empivot, 
-    read_ct_fiducials, read_em_fiducials, read_em_nav,
-    write_output2
-)
+from file_io import read_calbody, read_calreadings, read_empivot, read_ct_fiducials, read_em_fiducials, read_em_nav
 from math_utils_cart import Point3D, Rotation, Frame, find_rigid_transform, calculate_centroid
-from math_utils_cart import find_fd, find_fa, compute_expected_C, em_tracking, compute_probe_pose
-from distortion import DistortionCorrector
-from registration import point_set_registration, transform_point
+from math_utils_cart import find_fd, find_fa, compute_expected_C, em_tracking
+from distortion import DistortionCorrector, b_j_locations, find_f_reg, navigation_data
+# from registration import point_set_registration, transform_point
 import click
 
 
 @click.command()
-@click.option("--data_dir", "-d", default="PA2 Student Data", help="Input data directory")
-@click.option("--output_dir", "-o", default="output", help="Output directory")
+@click.option("--data_dir", "-d", default="PA2/pa_2_student_data/PA 2 Student Data", help="Input data directory")
+@click.option("--output_dir", "-o", default=".", help="Output directory")
 
 # Required files for PA2
 @click.option("--calbody_file", required=True, help="Name of the calbody file")
@@ -37,18 +32,19 @@ def main(data_dir, output_dir, calbody_file, calreadings_file, empivot_file,
     data_path = Path(data_dir)
     output_path = Path(output_dir)
 
+    print(f"output path: {output_path}")
+        
     # question 1
 
-    cal_path = data_dir / f"{calbody_file}.txt"
-    calreadings_path = data_dir / f"{calreadings_file}.txt"
-    em_path = data_dir / f"{empivot_file}.txt"
-    ct_fiducials_path = data_dir / f"{ct_fiducials_file}.txt"
-    em_fiducials_path = data_dir / f"{em_fiducials_file}.txt"
-    em_nav_path = data_dir / f"{em_nav_file}.txt"
+    cal_path = data_path / f"{calbody_file}.txt"
+    calreadings_path = data_path / f"{calreadings_file}.txt"
+    em_path = data_path / f"{empivot_file}.txt"
+    ct_fiducials_path = data_path / f"{ct_fiducials_file}.txt"
+    em_fiducials_path = data_path / f"{em_fiducials_file}.txt"
+    em_nav_path = data_path / f"{em_nav_file}.txt"
 
-
-    if not output_dir.exists():
-        output_dir.mkdir()
+    if not output_path.exists():
+        output_path.mkdir()
 
     calbody_data = read_calbody(cal_path)
     calreadings_data = read_calreadings(calreadings_path)
@@ -66,10 +62,17 @@ def main(data_dir, output_dir, calbody_file, calreadings_file, empivot_file,
 
     all_measured_c = []
 
+    all_measured_c = []
     for frame in calreadings_data:
-        all_measured_c.extend(frame['C'])
+        for point3d in frame.C:
+            all_measured_c.append([point3d.x, point3d.y, point3d.z])
+
+    all_expected_c = []
+    for frame_expected in expected_C_all:
+        for point3d in frame_expected:
+            all_expected_c.append([point3d.x, point3d.y, point3d.z])
+    expected_C_all = np.array(all_expected_c)
     all_measured_c = np.array(all_measured_c)
-    expected_C_all = np.array(expected_C_all)
 
     # question 2: create distorction corrector function
 
@@ -83,9 +86,40 @@ def main(data_dir, output_dir, calbody_file, calreadings_file, empivot_file,
     # question 3: apply distortion correction to EM navigation data
     corrected_empivot_frames = []
     for frame in empivot_data:
-        g_measured = np.array(frame['G'])
+        # FIX: Use attribute access for EmPivotFrame objects
+        g_measured_points = frame.g_points  # Get the list of Point3D objects
+        
+        # Convert Point3D objects to numpy array
+        g_measured = np.array([[p.x, p.y, p.z] for p in g_measured_points])
+        
         g_corrected = distortion_corrector.correct(g_measured)
-        corrected_empivot_frames.append({'G':g_corrected.tolist()})
+        corrected_empivot_frames.append({'G': g_corrected.tolist()})
 
     t_g_corrected, p_dimple_corrected = em_tracking(corrected_empivot_frames)
+    first_frame_corrected = corrected_empivot_frames[0]
+    if hasattr(first_frame_corrected, 'g_points'):  # EmPivotFrame object
+        first_frame_points = first_frame_corrected.g_points
+    else:  # Dictionary
+        first_frame_points = [Point3D(p[0], p[1], p[2]) for p in first_frame_corrected['G']]
+
+    # Calculate centroid and create g_j_reference as Point3D objects
+    centroid = calculate_centroid(first_frame_points)
+    g_j_reference = []
+    for point in first_frame_points:
+        g_j = Point3D(point.x - centroid.x, point.y - centroid.y, point.z - centroid.z)
+        g_j_reference.append(g_j)
+
+    #question 4: compute fiducial coordinates 
+    b_j_em = b_j_locations(em_fiducials_data, distortion_corrector, t_g_corrected, g_j_reference)
+
+    #question 5: compute Freg 
+    F_reg = find_f_reg(ct_fiducials_data, b_j_em)
+
+    #question 6: process navigation data 
+    output_file_path = output_path / "pa2-debug-a-output2.txt"
+    tip_positions_ct = navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_reference, F_reg, output_file_path)
+        
+if __name__ == "__main__":
+    main()
+
     

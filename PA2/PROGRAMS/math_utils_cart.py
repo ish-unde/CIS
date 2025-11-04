@@ -182,47 +182,42 @@ class CalibrationFrame:
 
 # question 4
 
-def find_fd(frames, d_points):
+def find_fd(d_points, calreadings_data):
     """ 
     computing the transformation FD between optical tracker and EM tracker coordinate
     """
-
     all_optical_D = []
     all_em_d_points = []
 
-    for frame in frames:
-        all_optical_D.extend(frame.D)
+    for frame in calreadings_data:
+        all_optical_D.extend(frame.D)  # Use .D not ['D']
         all_em_d_points.extend(d_points)
 
-    
     F_d = find_rigid_transform(all_em_d_points, all_optical_D)
-
     return F_d
 
-def find_fa(frames, a_points):
+def find_fa(a_points, calreadings_data, fd):
     """
     computing the transformation FA between optical tracker and EM tracker coordinate
     """
     all_F_a = []
 
-    for frame in frames:
-        F_a = find_rigid_transform(a_points, frame.A)
+    for frame in calreadings_data:
+        F_a = find_rigid_transform(a_points, frame.A)  # Use .A not ['A']
         all_F_a.append(F_a)
 
     return all_F_a
 
-def compute_expected_C(frames, fd, all_fa, c_points):
+def compute_expected_C(calreadings_data, fd, all_fa, c_points):
     """
-    computing the expected C position: C_expercted = FD^-1 * FA * c_j
+    computing the expected C position: C_expected = FD^-1 * FA * c_j
     """
-
     all_C_expected = []
     fd_inv = fd.inverse()
     all_errors = []
 
-    for i, (frame, f_a) in enumerate(zip(frames, all_fa)):
+    for i, (frame, f_a) in enumerate(zip(calreadings_data, all_fa)):
         f_composite = fd_inv.compose(f_a)
-
         c_set = []
 
         for c_j in c_points:
@@ -231,22 +226,19 @@ def compute_expected_C(frames, fd, all_fa, c_points):
 
         all_C_expected.append(c_set)
 
-        # need to calculate errors associated with this transformation
+        # FIX: Use attribute access
         errors = []
-
-        for expected, actual in zip(all_C_expected[i], frame.C):
+        for expected, actual in zip(all_C_expected[i], frame.C):  # Use .C not ['C']
             error = np.linalg.norm([expected.x - actual.x, expected.y - actual.y, expected.z - actual.z])
             errors.append(error)
 
         frame_mean_error = np.mean(errors)
-
         all_errors.extend(errors)
     
     mean_error = np.mean(all_errors)
     print(mean_error)
 
     return all_C_expected
-
 
 # question 5
 
@@ -255,35 +247,48 @@ class EmPivotFrame:
         self.g_points = g_points  
 
 
-def em_tracking(frames): 
-
-    #extract Gj from empivot 5a 
-    g_frames = frames
+def em_tracking(g_frames): 
+    # Extract Gj from empivot - handle both EmPivotFrame objects and dictionaries
     g_frames_first = g_frames[0]
+    
+    # Handle both object and dictionary formats
+    if hasattr(g_frames_first, 'g_points'):  # EmPivotFrame object
+        first_frame_points = g_frames_first.g_points
+    elif isinstance(g_frames_first, dict) and 'G' in g_frames_first:  # Dictionary
+        # Convert list of lists to Point3D objects
+        first_frame_points = [Point3D(p[0], p[1], p[2]) for p in g_frames_first['G']]
+    else:
+        raise ValueError("Unknown frame format in em_tracking")
+    
+    # Calculate midpoint
+    g_midpoint = calculate_centroid(first_frame_points)  
 
-    #get frame[0] to calculate midpoint 5a
-    g_midpoint = calculate_centroid(g_frames_first.g_points)  
-
-    #then calculate gj!  5a
+    # Calculate gj reference points
     g_j_points = []
-    for point in g_frames_first.g_points:
+    for point in first_frame_points:
         g_j = Point3D(point.x - g_midpoint.x, point.y - g_midpoint.y, point.z - g_midpoint.z)
         g_j_points.append(g_j)
 
-    #iterate through all frames to get FG[k] 5b
+    # Iterate through all frames to get F_G[k]
     F_G_frames = []
-    for frame in g_frames: 
-        F_Gk = find_rigid_transform(g_j_points, frame.g_points) 
+    for frame in g_frames:
+        # Handle both object and dictionary formats
+        if hasattr(frame, 'g_points'):  # EmPivotFrame object
+            frame_points = frame.g_points
+        elif isinstance(frame, dict) and 'G' in frame:  # Dictionary
+            frame_points = [Point3D(p[0], p[1], p[2]) for p in frame['G']]
+        else:
+            raise ValueError("Unknown frame format in em_tracking")
+        
+        F_Gk = find_rigid_transform(g_j_points, frame_points) 
         F_G_frames.append(F_Gk)
     
-    #5c, finding P_dimple using pivot calibration
+    # Find P_dimple using pivot calibration
     poses = [] 
-
     for frame in F_G_frames: 
         R = frame.rotation.matrix
         p = frame.translation.to_array()
         poses.append((R, p))
-
 
     pivot = PivotCalibration()
     t_g_array, P_dimple_array = pivot.calibrate(poses)
@@ -292,7 +297,6 @@ def em_tracking(frames):
     P_dimple = Point3D(P_dimple_array[0], P_dimple_array[1], P_dimple_array[2])
 
     return t_g, P_dimple
-        
 
 # question 6
 

@@ -129,20 +129,26 @@ def read_optpivot(filename):
 
 # added for P2
 def read_ct_fiducials(filename):
-    b_fiducials = []
-
+    """
+    Read CT fiducials from NAME-CT-FIDUCIALS.TXT
+    """
+    points = []
+    
     with open(filename, 'r') as file:
+        # First line: N_B, filename
         header = file.readline().strip()
         header_parts = [part.strip() for part in header.split(',')]
-        num_fiducials = int(header_parts[0])
-
-        for _ in range(num_fiducials + 1):
+        N_B = int(header_parts[0])
+        
+        # Next N_B lines: b_x,i, b_y,i, b_z,i
+        for _ in range(N_B):
             line = file.readline().strip()
-            x, y, z = map(float, line.split(','))
-            b_fiducials.append(Point3D(x, y, z))
-
+            coords = [coord.strip() for coord in line.split(',') if coord.strip()]
+            if len(coords) == 3:
+                x, y, z = map(float, coords)
+                points.append(Point3D(x, y, z))
     
-    return b_fiducials
+    return points
 
 # added for P2
 def read_em_fiducials(filename):
