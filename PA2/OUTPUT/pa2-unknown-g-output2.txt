@@ -1,4 +1,4 @@
-4, output\pa2-unknown-g-output2.txt
+4, pa2-unknown-g-output2.txt
    90.82,    82.82,    41.18
    45.55,    72.78,    74.74
    53.28,   118.13,   110.45

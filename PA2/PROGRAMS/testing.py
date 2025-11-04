@@ -53,8 +53,6 @@ def test_distortion_corrector_feature_generation():
 
 
 
-
-
 # testing location computation
 def test_b_j_locations_computation():
     """Test computation of fiducial locations in EM space."""

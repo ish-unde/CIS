@@ -12,7 +12,8 @@ class DistortionCorrector:
         self.feature_naming()
 
     def feature_naming(self):
-        """Generate names for polynomial features based on degree."""
+        """Generate names for polynomial features based on degree. This method is cited from Registration 
+        Slides in Class Taylor, R. (2022). Registration - Part 3 [Lecture Slides].CIIS Lab Wiki courses:455-655:455-655 – CIIS Wiki"""
         self.naming = ['1']
         for total_degree in range(1, self.degree + 1):
             for i in range(total_degree + 1):
