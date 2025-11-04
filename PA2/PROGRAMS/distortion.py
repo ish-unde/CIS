@@ -38,13 +38,6 @@ class DistortionCorrector:
         """
         Generate polynomial terms for a single 3D point.
         
-        Args:
-            x (float): x-coordinate
-            y (float): y-coordinate  
-            z (float): z-coordinate
-            
-        Returns:
-            list: Polynomial terms [1, x, y, z, x², xy, xz, y², yz, z², ...]
         """
         terms = [1.0]
 
@@ -63,6 +56,7 @@ class DistortionCorrector:
     def compute_feature(self, points):
         """
         Compute polynomial features for a set of 3D points.
+
         """
 
         if points.ndim != 2 or points.shape[1] != 3:
@@ -132,29 +126,27 @@ class DistortionCorrector:
 def b_j_locations(em_fiducials_data, distortion_corrector, pivot_tip_G, g_j_reference):
     """
     Question 4: Compute fiducial locations b_j with distortion correction
+
     """
     b_j_em = []
     
-    # Convert g_j_reference (numpy array) to Point3D objects
     if isinstance(g_j_reference, np.ndarray):
         g_j_ref_points = [Point3D(p[0], p[1], p[2]) for p in g_j_reference]
     else:
         g_j_ref_points = g_j_reference
     
     for frame in em_fiducials_data:
-        # Extract EM marker measurements
+        # EM marker measurements 
         g_measured_points = frame.g_points
         
-        # Convert Point3D objects to numpy array
+        # Point3D objects to numpy array
         g_measured = np.array([[p.x, p.y, p.z] for p in g_measured_points])
         
-        # Apply distortion correction
+        #  distortion correction
         g_corrected = distortion_corrector.correct(g_measured)
         
-        # Convert back to Point3D for rigid transform
+        #  rigid transform
         corrected_points = [Point3D(p[0], p[1], p[2]) for p in g_corrected]
-        
-        # Compute probe transform - use converted Point3D objects
         F_G = find_rigid_transform(g_j_ref_points, corrected_points)
         
         # Compute tip position in EM coordinates
@@ -171,8 +163,6 @@ def find_f_reg(ct_fiducials_data, b_j_em):
     """
     # Convert b_j_em numpy array to Point3D objects
     points_em = [Point3D(p[0], p[1], p[2]) for p in b_j_em]
-    
-    # ct_fiducials_data should already be Point3D objects
     points_ct = ct_fiducials_data
     
     # Compute registration: find F such that points_ct = F • points_em
@@ -180,25 +170,6 @@ def find_f_reg(ct_fiducials_data, b_j_em):
     
     return F_reg
 
-# func might not be needed 
-def compute_registration_error(F_reg, b_j_em, ct_fiducials_file):
-    """
-    Compute RMS error of the registration
-    """
-    ct_fiducials = read_ct_fiducials(ct_fiducials_file)
-    
-    errors = []
-    for b_em, b_ct in zip(b_j_em, ct_fiducials):
-        # Transform EM point to CT coordinates
-        b_em_transformed = F_reg.transform_point(Point3D(b_em[0], b_em[1], b_em[2]))
-        
-        # Compute error
-        error = np.sqrt((b_em_transformed.x - b_ct.x)**2 + 
-                       (b_em_transformed.y - b_ct.y)**2 + 
-                       (b_em_transformed.z - b_ct.z)**2)
-        errors.append(error)
-    
-    return np.mean(errors)
 
 #question 6 
 
@@ -223,19 +194,13 @@ def navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_refere
     tip_positions_ct = []
     
     for frame in em_nav_data:
-        # Use attribute access for EmPivotFrame objects
-        g_measured_points = frame.g_points  # Get the list of Point3D objects
-        
-        # Convert Point3D objects to numpy array
+        g_measured_points = frame.g_points  
         g_measured = np.array([[p.x, p.y, p.z] for p in g_measured_points])
         
         # Apply distortion correction
         g_corrected = distortion_corrector.correct(g_measured)
         
-        # Convert back to Point3D for your existing functions
         corrected_points = [Point3D(p[0], p[1], p[2]) for p in g_corrected]
-        
-        # Compute probe transform
         F_G = compute_probe_transform(corrected_points, g_j_reference)
         
         # Compute tip in EM coordinates
@@ -250,6 +215,7 @@ def navigation_data(em_nav_data, distortion_corrector, t_g_corrected, g_j_refere
     
     return np.array(tip_positions_ct)
 
+#helper func for question 6 
 def write_output2_file(output_file, tip_positions_ct):
     N_frames = len(tip_positions_ct)
     

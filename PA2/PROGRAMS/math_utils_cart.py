@@ -155,10 +155,6 @@ class PivotCalibration:
         if rank < 6:
             print(f"System is underdetermined, rank is < 6: {rank}")
 
-        # check if valid rotation matrix
-        if np.isclose(np.linalg.det(R), 1):
-            print("Valid rotation matrix with Det(R) = 1")
-
         # update points and error 
         self.tip_position = x[0:3]
         self.pivot_point = x[3:6]
@@ -236,7 +232,6 @@ def compute_expected_C(calreadings_data, fd, all_fa, c_points):
         all_errors.extend(errors)
     
     mean_error = np.mean(all_errors)
-    print(mean_error)
 
     return all_C_expected
 
@@ -248,14 +243,12 @@ class EmPivotFrame:
 
 
 def em_tracking(g_frames): 
-    # Extract Gj from empivot - handle both EmPivotFrame objects and dictionaries
+    # Extract Gj from empivot, changed for PA2 to handle both EmPivotFrame objects and dictionaries
     g_frames_first = g_frames[0]
     
-    # Handle both object and dictionary formats
-    if hasattr(g_frames_first, 'g_points'):  # EmPivotFrame object
+    if hasattr(g_frames_first, 'g_points'): 
         first_frame_points = g_frames_first.g_points
-    elif isinstance(g_frames_first, dict) and 'G' in g_frames_first:  # Dictionary
-        # Convert list of lists to Point3D objects
+    elif isinstance(g_frames_first, dict) and 'G' in g_frames_first:  
         first_frame_points = [Point3D(p[0], p[1], p[2]) for p in g_frames_first['G']]
     else:
         raise ValueError("Unknown frame format in em_tracking")
@@ -272,10 +265,9 @@ def em_tracking(g_frames):
     # Iterate through all frames to get F_G[k]
     F_G_frames = []
     for frame in g_frames:
-        # Handle both object and dictionary formats
-        if hasattr(frame, 'g_points'):  # EmPivotFrame object
+        if hasattr(frame, 'g_points'):  
             frame_points = frame.g_points
-        elif isinstance(frame, dict) and 'G' in frame:  # Dictionary
+        elif isinstance(frame, dict) and 'G' in frame: 
             frame_points = [Point3D(p[0], p[1], p[2]) for p in frame['G']]
         else:
             raise ValueError("Unknown frame format in em_tracking")
