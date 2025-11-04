@@ -256,5 +256,5 @@ def write_output2_file(output_file, tip_positions_ct):
     with open(output_file, 'w') as file:
         file.write(f"{N_frames}, {output_file}\n")
         for tip_pos in tip_positions_ct:
-            file.write(f"{tip_pos[0]:.2f}, {tip_pos[1]:.2f}, {tip_pos[2]:.2f}\n")
+            file.write(f"{tip_pos[0]:8.2f}, {tip_pos[1]:8.2f}, {tip_pos[2]:8.2f}\n")
 
