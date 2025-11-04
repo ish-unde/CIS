@@ -127,6 +127,77 @@ def read_optpivot(filename):
     return frames
 
 
+# added for P2
+def read_ct_fiducials(filename):
+    b_fiducials = []
+
+    with open(filename, 'r') as file:
+        header = file.readline().strip()
+        header_parts = [part.strip() for part in header.split(',')]
+        num_fiducials = int(header_parts[0])
+
+        for _ in range(num_fiducials + 1):
+            line = file.readline().strip()
+            x, y, z = map(float, line.split(','))
+            b_fiducials.append(Point3D(x, y, z))
+
+    
+    return b_fiducials
+
+# added for P2
+def read_em_fiducials(filename):
+    """describes frames of data in which the probe is in contact with the corrrresponding CT fiducial points"""
+
+    frames = []
+
+
+    with open(filename, 'r') as file:
+
+        header = file.readline().strip()
+        header_parts = [part.strip() for part in header.split(',')]
+
+        num_g_points = int(header_parts[0])
+        num_frames = int(header_parts[1])
+        
+
+        for _ in range(num_frames):
+            g_j = []
+            for _ in range(num_g_points):
+                line = file.readline().strip()
+                x, y, z = map(float, line.split(','))
+                g_j.append(Point3D(x, y, z))
+            frames.append(EmPivotFrame(g_j))
+    return frames 
+
+# added for P2
+def read_em_nav(filename):
+    """describes frames of data definding test points. 
+    
+    note: we are to find the corresponding positions of the probe tip wrt the CT coordinates
+    """
+
+    frames = []
+
+
+    with open(filename, 'r') as file:
+
+        header = file.readline().strip()
+        header_parts = [part.strip() for part in header.split(',')]
+
+        num_g_points = int(header_parts[0])
+        num_frames = int(header_parts[1])
+        
+
+        for _ in range(num_frames):
+            g_j = []
+            for _ in range(num_g_points):
+                line = file.readline().strip()
+                x, y, z = map(float, line.split(','))
+                g_j.append(Point3D(x, y, z))
+            frames.append(EmPivotFrame(g_j))
+    return frames 
+
+
 
 def write_registration(output_file, N_c, N_frames, all_C_expected):
     with open(output_file, 'w') as file:
@@ -201,3 +272,18 @@ def write_output(reg_file, em_file, opt_file, output_file):
         # all lines onward
         for line in reg_rest:
             file.write(line)
+
+
+#added for P2
+def write_em_output(output_file, em_frames):
+    n_frames = len(em_frames)
+
+    with open(output_file, 'w') as file:
+        # line 1: N_frames, NAME-OUTPUT.TXT
+        file.write(f"{n_frames}, {output_file}\n")
+
+        for frame in em_frames:
+            for v in frame.v_points:
+                file.write(f"{v.x:.2f}, {v.y:.2f}, {v.z:.2f}\n")
+
+
