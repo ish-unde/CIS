@@ -1,4 +1,5 @@
 import numpy as np
+from registration import find_rigid_transform
 
 def closest_point_triange(P, A, B, C):
     """ find the closest point on the triangle ABC to point P"""
@@ -78,6 +79,25 @@ def closest_point_mesh(P, vertices, triangles):
             closest_point = point
 
     return closest_point, min_distance
+
+def compute_transform_from_markers(body_markers, tracker_markers):
+    """
+    Compute the homogeneous transformation matrix from body coordinates to tracker coordinates
+    """
+    # numpy arrays from file 
+    body_pts = np.array(body_markers)
+    tracker_pts = np.array(tracker_markers)
+    
+    # Find rigid transformation
+    R, t = find_rigid_transform(body_pts, tracker_pts)
+    
+    # Create the homogeneous transformation matrix
+    F = np.eye(4)
+    F[:3, :3] = R
+    F[:3, 3] = t.flatten()
+    
+    return F
+
 
 
 

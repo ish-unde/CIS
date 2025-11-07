@@ -5,35 +5,36 @@ def find_rigid_transform(points_A, points_B):
     Find the rigid transformation that best aligns points_A to points_B
     using slides 4 from CIS Class and Direct Technique to solve for R from 
     K.Arun et al. IEEE PAMI, Vol 9 no 5, September 1987.
-
     """
-    A = np.array([p.to_array() for p in points_A]).T  
-    B = np.array([p.to_array() for p in points_B]).T  
+    # Remove the .to_array() calls - points_A and points_B are already numpy arrays
+    A = points_A.T  
+    B = points_B.T  
     
-    # turn into centroid
+    # Compute centroids
     centroid_A = np.mean(A, axis=1, keepdims=True)
     centroid_B = np.mean(B, axis=1, keepdims=True)
     
+    # Center the points
     A_centered = A - centroid_A
     B_centered = B - centroid_B
     
-    # compute covariance matrix
+    # Compute covariance matrix
     H = A_centered @ B_centered.T
     
-    # use SVD
+    # SVD decomposition
     U, S, Vt = np.linalg.svd(H)
 
-    # ensure right-handed coordinate system
+    # Ensure right-handed coordinate system
     d = np.sign(np.linalg.det(Vt.T @ U.T))
     D = np.diag([1, 1, d])
     
-    # rotation
+    # Compute rotation matrix
     R = Vt.T @ D @ U.T
 
-    # translation 
+    # Compute translation vector
     t = centroid_B - R @ centroid_A
     
-    return R, t
+    return R, t.flatten()
 
 def compute_transform(body_marker, tracker_markers):
     R, t = find_rigid_transform(body_marker.get_markers(), tracker_markers)
