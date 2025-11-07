@@ -1,11 +1,4 @@
 import numpy as np
-import sys
-import os
-
-# Add the current directory to path to import your functions
-sys.path.append(os.path.dirname(__file__))
-
-# Import the functions - make sure the function names match exactly
 from geometry import closest_point_triange, closest_point_mesh, compute_transform_from_markers
 from registration import find_rigid_transform
 
