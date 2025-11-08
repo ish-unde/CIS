@@ -108,8 +108,6 @@ def test_compute_transform():
     """Test compute_transform_from_markers with simple direct approach"""
     print("\n=== Testing compute_transform_from_markers (simple) ===")
     
-    # Since your function expects specific object types, let's test the core logic
-    # by testing the components separately
     
     # Test data
     body_markers_data = np.array([
